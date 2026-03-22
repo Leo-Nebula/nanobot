@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🐈 nanobot 项目全景图 — 像朋友一样聊聊这个 AI 助手是怎么跑起来的</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0c0a09;--bg2:#1c1917;--bg3:#292524;--bg4:#44403c;
+  --warm:#f59e0b;--warm2:#fbbf24;--warm3:#fde68a;
+  --coral:#fb7185;--teal:#2dd4bf;--sky:#38bdf8;--violet:#a78bfa;--lime:#a3e635;
+  --text:#fafaf9;--text2:#d6d3d1;--text3:#a8a29e;
+  --radius:16px;--radius-sm:10px;
+}
+html{scroll-behavior:smooth;background:var(--bg)}
+body{font-family:'Noto Sans SC',sans-serif;color:var(--text);line-height:1.8;overflow-x:hidden;background:var(--bg)}
+code,pre,.mono{font-family:'JetBrains Mono',monospace}
+
+/* ===== scrollbar ===== */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:3px}
+
+/* ===== hero ===== */
+.hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:2rem;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;width:600px;height:600px;background:radial-gradient(circle,rgba(245,158,11,.12) 0%,transparent 70%);top:-100px;right:-100px;pointer-events:none}
+.hero::after{content:'';position:absolute;width:500px;height:500px;background:radial-gradient(circle,rgba(251,113,133,.08) 0%,transparent 70%);bottom:-100px;left:-100px;pointer-events:none}
+.hero-cat{font-size:6rem;margin-bottom:1rem;animation:float 3s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+.hero h1{font-family:'Playfair Display',serif;font-size:clamp(2.5rem,6vw,4.5rem);font-weight:900;background:linear-gradient(135deg,var(--warm),var(--coral));-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1.2;margin-bottom:1rem}
+.hero .subtitle{font-size:1.25rem;color:var(--text2);max-width:600px;margin-bottom:2.5rem}
+.hero .scroll-hint{color:var(--text3);font-size:.9rem;animation:bounce 2s infinite}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(8px)}}
+
+/* ===== nav dots ===== */
+.nav-dots{position:fixed;right:1.5rem;top:50%;transform:translateY(-50%);z-index:100;display:flex;flex-direction:column;gap:12px}
+.nav-dot{width:10px;height:10px;border-radius:50%;background:var(--bg4);cursor:pointer;transition:all .3s;border:none;position:relative}
+.nav-dot.active{background:var(--warm);box-shadow:0 0 12px rgba(245,158,11,.5)}
+.nav-dot .tip{position:absolute;right:22px;top:50%;transform:translateY(-50%);white-space:nowrap;font-size:.75rem;color:var(--text3);background:var(--bg3);padding:3px 10px;border-radius:6px;opacity:0;transition:opacity .2s;pointer-events:none}
+.nav-dot:hover .tip{opacity:1}
+
+/* ===== sections ===== */
+section{padding:5rem 2rem;max-width:1100px;margin:0 auto;position:relative}
+.section-tag{display:inline-block;font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:2px;padding:4px 14px;border-radius:20px;margin-bottom:1rem}
+section h2{font-family:'Playfair Display',serif;font-size:clamp(2rem,4vw,3rem);font-weight:900;margin-bottom:.5rem;line-height:1.2}
+section .lead{font-size:1.1rem;color:var(--text2);margin-bottom:2.5rem;max-width:700px}
+
+/* ===== analogy cards ===== */
+.analogy{background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius);padding:1.5rem 2rem;margin:1.5rem 0;position:relative;overflow:hidden}
+.analogy::before{content:'💡';position:absolute;top:-8px;left:16px;font-size:1.5rem}
+.analogy .label{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--warm);margin-bottom:.3rem;padding-top:.5rem}
+.analogy p{color:var(--text2);font-size:.95rem}
+
+/* ===== architecture tower ===== */
+.arch-tower{perspective:900px;display:flex;flex-direction:column;align-items:center;gap:0;margin:3rem auto;max-width:750px}
+.arch-layer{width:100%;border-radius:var(--radius);padding:1.5rem 2rem;position:relative;transform:rotateX(2deg);transition:all .4s ease;cursor:pointer;border:1px solid transparent}
+.arch-layer:hover{transform:rotateX(0deg) scale(1.03);z-index:10;border-color:rgba(255,255,255,.1)}
+.arch-layer .layer-num{position:absolute;left:-2.5rem;top:50%;transform:translateY(-50%);font-family:'Playfair Display',serif;font-size:2rem;font-weight:900;opacity:.3}
+.arch-layer h3{font-size:1.1rem;font-weight:700;margin-bottom:.3rem;display:flex;align-items:center;gap:.5rem}
+.arch-layer p{font-size:.85rem;opacity:.85;line-height:1.6}
+.arch-layer .tech-pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:.6rem}
+.arch-layer .pill{font-size:.7rem;padding:2px 10px;border-radius:12px;background:rgba(255,255,255,.08);color:var(--text2);font-family:'JetBrains Mono',monospace}
+
+.layer-channels{background:linear-gradient(135deg,#1e3a5f,#0f2942);box-shadow:0 8px 30px rgba(56,189,248,.08)}
+.layer-channels h3{color:var(--sky)}
+.layer-bus{background:linear-gradient(135deg,#2d1b4e,#1a1033);box-shadow:0 8px 30px rgba(167,139,250,.08);margin-top:-6px}
+.layer-bus h3{color:var(--violet)}
+.layer-agent{background:linear-gradient(135deg,#3b1d0b,#2a1408);box-shadow:0 8px 30px rgba(245,158,11,.12);margin-top:-6px;border:1px solid rgba(245,158,11,.15)}
+.layer-agent h3{color:var(--warm)}
+.layer-tools{background:linear-gradient(135deg,#0b2e24,#061a15);box-shadow:0 8px 30px rgba(45,212,191,.08);margin-top:-6px}
+.layer-tools h3{color:var(--teal)}
+.layer-providers{background:linear-gradient(135deg,#3b1a2a,#2a0f1d);box-shadow:0 8px 30px rgba(251,113,133,.08);margin-top:-6px}
+.layer-providers h3{color:var(--coral)}
+.layer-storage{background:linear-gradient(135deg,#2a2a0a,#1a1a05);box-shadow:0 8px 30px rgba(163,230,53,.06);margin-top:-6px}
+.layer-storage h3{color:var(--lime)}
+
+.connector{width:2px;height:20px;background:linear-gradient(to bottom,rgba(255,255,255,.15),rgba(255,255,255,.05));margin:0 auto}
+
+/* ===== chat simulation ===== */
+.chat-sim{background:var(--bg2);border-radius:var(--radius);overflow:hidden;margin:2rem 0;border:1px solid var(--bg3)}
+.chat-header{background:var(--bg3);padding:.8rem 1.2rem;font-size:.85rem;font-weight:700;display:flex;align-items:center;gap:.5rem}
+.chat-header .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.chat-body{padding:1.5rem;display:flex;flex-direction:column;gap:1rem;min-height:200px}
+.chat-msg{max-width:80%;padding:.8rem 1.2rem;border-radius:var(--radius-sm);font-size:.88rem;line-height:1.6;opacity:0;transform:translateY(12px);animation:msgIn .4s forwards}
+@keyframes msgIn{to{opacity:1;transform:translateY(0)}}
+.chat-msg.left{align-self:flex-start;border-bottom-left-radius:4px}
+.chat-msg.right{align-self:flex-end;border-bottom-right-radius:4px}
+.chat-msg .sender{font-size:.7rem;font-weight:700;margin-bottom:.2rem;text-transform:uppercase;letter-spacing:1px}
+.chat-msg code{background:rgba(0,0,0,.3);padding:1px 6px;border-radius:4px;font-size:.8rem}
+
+.msg-user{background:linear-gradient(135deg,#1e3a5f,#1a3050);border:1px solid rgba(56,189,248,.15)}
+.msg-user .sender{color:var(--sky)}
+.msg-bus{background:linear-gradient(135deg,#2d1b4e,#231340);border:1px solid rgba(167,139,250,.15)}
+.msg-bus .sender{color:var(--violet)}
+.msg-agent{background:linear-gradient(135deg,#3b2a0b,#2a1f08);border:1px solid rgba(245,158,11,.15)}
+.msg-agent .sender{color:var(--warm)}
+.msg-llm{background:linear-gradient(135deg,#3b1a2a,#2a1520);border:1px solid rgba(251,113,133,.15)}
+.msg-llm .sender{color:var(--coral)}
+.msg-tool{background:linear-gradient(135deg,#0b2e24,#0a2018);border:1px solid rgba(45,212,191,.15)}
+.msg-tool .sender{color:var(--teal)}
+.msg-storage{background:linear-gradient(135deg,#2a2a0a,#1f1f08);border:1px solid rgba(163,230,53,.15)}
+.msg-storage .sender{color:var(--lime)}
+
+/* ===== flow steps ===== */
+.flow-steps{display:flex;flex-direction:column;gap:0;margin:2rem 0}
+.flow-step{display:flex;gap:1.5rem;align-items:flex-start;position:relative}
+.flow-step .step-line{display:flex;flex-direction:column;align-items:center;min-width:40px}
+.flow-step .step-dot{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:900;flex-shrink:0;position:relative;z-index:1}
+.flow-step .step-bar{width:2px;flex:1;min-height:20px;background:var(--bg4)}
+.flow-step:last-child .step-bar{display:none}
+.flow-step .step-content{padding-bottom:2rem}
+.flow-step .step-content h4{font-size:1rem;margin-bottom:.3rem}
+.flow-step .step-content p{font-size:.88rem;color:var(--text2);line-height:1.7}
+
+/* ===== tool grid ===== */
+.tool-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:1rem;margin:2rem 0}
+.tool-card{background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius-sm);padding:1.2rem;transition:all .3s;cursor:default}
+.tool-card:hover{border-color:var(--teal);transform:translateY(-2px);box-shadow:0 8px 24px rgba(45,212,191,.06)}
+.tool-card .icon{font-size:1.5rem;margin-bottom:.5rem}
+.tool-card h4{font-size:.95rem;color:var(--teal);margin-bottom:.3rem}
+.tool-card p{font-size:.82rem;color:var(--text3);line-height:1.6}
+
+/* ===== provider list ===== */
+.provider-row{display:flex;flex-wrap:wrap;gap:.8rem;margin:1.5rem 0}
+.provider-chip{display:flex;align-items:center;gap:.5rem;background:var(--bg2);border:1px solid var(--bg3);border-radius:30px;padding:.4rem 1rem;font-size:.82rem;color:var(--text2);transition:all .3s;cursor:default}
+.provider-chip:hover{border-color:var(--coral);color:var(--text)}
+.provider-chip .p-dot{width:6px;height:6px;border-radius:50%;background:var(--coral)}
+
+/* ===== file tree ===== */
+.file-tree{background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius);padding:1.5rem 2rem;font-family:'JetBrains Mono',monospace;font-size:.82rem;color:var(--text3);line-height:2;overflow-x:auto;white-space:pre;word-wrap:break-word}
+.file-tree .dir{color:var(--warm2);font-weight:600}
+.file-tree .file{color:var(--text2)}
+.file-tree .comment{color:var(--text3);font-style:italic}
+
+/* ===== tabs ===== */
+.tabs{display:flex;gap:0;margin:2rem 0 0;border-bottom:1px solid var(--bg3)}
+.tab-btn{padding:.6rem 1.5rem;font-size:.85rem;font-weight:600;background:none;border:none;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;font-family:inherit}
+.tab-btn:hover{color:var(--text2)}
+.tab-btn.active{color:var(--warm);border-bottom-color:var(--warm)}
+.tab-panels{margin-bottom:2rem}
+.tab-panel{display:none;padding:1.5rem 0}
+.tab-panel.active{display:block}
+
+/* ===== interactive demo ===== */
+.demo-box{background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius);overflow:hidden;margin:2rem 0}
+.demo-toolbar{background:var(--bg3);padding:.6rem 1rem;display:flex;align-items:center;gap:.5rem;font-size:.8rem;color:var(--text3)}
+.demo-toolbar .circle{width:10px;height:10px;border-radius:50%}
+.demo-terminal{padding:1.2rem 1.5rem;font-family:'JetBrains Mono',monospace;font-size:.82rem;line-height:1.8}
+.demo-terminal .prompt{color:var(--teal)}
+.demo-terminal .cmd{color:var(--text)}
+.demo-terminal .output{color:var(--text3)}
+.demo-terminal .highlight{color:var(--warm)}
+
+/* ===== config preview ===== */
+.config-preview{background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius);padding:1.5rem 2rem;font-family:'JetBrains Mono',monospace;font-size:.8rem;line-height:1.8;overflow-x:auto;white-space:pre;word-wrap:break-word}
+.config-preview .key{color:var(--sky)}
+.config-preview .val{color:var(--lime)}
+.config-preview .comment{color:var(--text3)}
+
+/* ===== footer ===== */
+.footer{text-align:center;padding:4rem 2rem 2rem;color:var(--text3);font-size:.85rem}
+.footer a{color:var(--warm);text-decoration:none}
+
+/* ===== fade in on scroll ===== */
+.reveal{opacity:0;transform:translateY(30px);transition:opacity .6s ease,transform .6s ease}
+.reveal.visible{opacity:1;transform:translateY(0)}
+
+/* ===== responsive ===== */
+@media(max-width:768px){
+  section{padding:3rem 1.2rem}
+  .arch-layer .layer-num{display:none}
+  .nav-dots{display:none}
+  .chat-msg{max-width:90%}
+  .tool-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ===================== NAV DOTS ===================== -->
+<nav class="nav-dots" id="navDots"></nav>
+
+<!-- ===================== HERO ===================== -->
+<header class="hero" data-section="intro">
+  <div class="hero-cat">🐈</div>
+  <h1>nanobot 是怎么跑起来的？</h1>
+  <p class="subtitle">
+    一个超轻量的 AI 助手框架，只有 ~4000 行核心代码。<br>
+    这篇交互式图解会用大白话带你看懂它的每一层。
+  </p>
+  <div class="scroll-hint">↓ 往下滑，开始探索</div>
+</header>
+
+<!-- ===================== SECTION: 一句话说清楚 ===================== -->
+<section data-section="tldr">
+  <span class="section-tag" style="background:rgba(245,158,11,.15);color:var(--warm)">先说结论</span>
+  <h2 class="reveal">一句话说清楚 nanobot 在干嘛</h2>
+  <p class="lead reveal">
+    nanobot 就像一个<strong>全能秘书</strong>：你在聊天软件里说一句话，它听懂之后去问 AI 大脑（大语言模型），
+    如果需要干活就动手（搜网页、读文件、执行命令），最后把结果原路发回给你。
+  </p>
+
+  <div class="analogy reveal">
+    <div class="label">日常比喻</div>
+    <p>
+      想象你在公司群里 @了一个超级助理。这个助理有一部手机（<strong>聊天渠道</strong>），
+      有一颗聪明的大脑（<strong>大语言模型</strong>），还有一双手能操作电脑（<strong>工具</strong>）。
+      你说"帮我查下明天天气"，它就去查，查到后在群里回复你。nanobot 就是这个助理的「操作系统」。
+    </p>
+  </div>
+</section>
+
+<!-- ===================== SECTION: 架构全景 ===================== -->
+<section data-section="arch">
+  <span class="section-tag" style="background:rgba(167,139,250,.15);color:var(--violet)">全景架构</span>
+  <h2 class="reveal">六层蛋糕：nanobot 的架构一览</h2>
+  <p class="lead reveal">
+    nanobot 的代码分成六层，每一层做好自己的事，层与层之间通过简单的接口对话。
+    把鼠标放到每层上看看——
+  </p>
+
+  <div class="arch-tower reveal">
+
+    <div class="arch-layer layer-channels" onclick="showLayerDetail('channels')">
+      <span class="layer-num">1</span>
+      <h3>📱 聊天渠道层 (Channels)</h3>
+      <p>你和 nanobot 说话的地方。Telegram、Discord、微信、飞书、钉钉、邮件……<br>不管你从哪里发消息，它都能接到。就像一个前台，接听所有电话。</p>
+      <div class="tech-pills">
+        <span class="pill">Telegram</span><span class="pill">Discord</span><span class="pill">WhatsApp</span>
+        <span class="pill">飞书</span><span class="pill">钉钉</span><span class="pill">Slack</span>
+        <span class="pill">Email</span><span class="pill">QQ</span><span class="pill">Matrix</span>
+      </div>
+    </div>
+
+    <div class="connector"></div>
+
+    <div class="arch-layer layer-bus" onclick="showLayerDetail('bus')">
+      <span class="layer-num">2</span>
+      <h3>🚌 消息总线 (Message Bus)</h3>
+      <p>所有消息的中转站。上面的聊天渠道把消息丢进来，下面的大脑从这里取消息处理。<br>就像机场的行李传送带——放上去、取下来，谁也不用管对方是谁。</p>
+      <div class="tech-pills">
+        <span class="pill">asyncio.Queue</span><span class="pill">InboundMessage</span><span class="pill">OutboundMessage</span>
+      </div>
+    </div>
+
+    <div class="connector"></div>
+
+    <div class="arch-layer layer-agent" onclick="showLayerDetail('agent')">
+      <span class="layer-num">3</span>
+      <h3>🧠 Agent 核心 (Agent Loop) — 最重要的一层！</h3>
+      <p>这就是 nanobot 的「大脑指挥部」。它从消息总线里拿到你说的话，组织上下文，调用 AI 模型思考，<br>如果 AI 说"我需要搜个网页"，它就去执行工具，把结果再喂给 AI，如此循环直到得到最终回答。</p>
+      <div class="tech-pills">
+        <span class="pill">AgentLoop</span><span class="pill">ContextBuilder</span><span class="pill">MemoryStore</span>
+        <span class="pill">SessionManager</span><span class="pill">SkillsLoader</span>
+      </div>
+    </div>
+
+    <div class="connector"></div>
+
+    <div class="arch-layer layer-tools" onclick="showLayerDetail('tools')">
+      <span class="layer-num">4</span>
+      <h3>🔧 工具层 (Tools)</h3>
+      <p>Agent 的「双手」。AI 大脑想干的事情，都通过工具来完成。<br>就像你让秘书"帮我发封邮件"——秘书知道该打开邮箱客户端，这就是工具。</p>
+      <div class="tech-pills">
+        <span class="pill">文件读写</span><span class="pill">执行命令</span><span class="pill">搜索网页</span>
+        <span class="pill">发送消息</span><span class="pill">定时任务</span><span class="pill">MCP 外部工具</span>
+      </div>
+    </div>
+
+    <div class="connector"></div>
+
+    <div class="arch-layer layer-providers" onclick="showLayerDetail('providers')">
+      <span class="layer-num">5</span>
+      <h3>🤖 模型提供商层 (Providers)</h3>
+      <p>负责和各家 AI 公司打电话。Claude、GPT、DeepSeek、Gemini……<br>就像翻译公司，不管你找哪家，Agent 都用同一种方式下单。</p>
+      <div class="tech-pills">
+        <span class="pill">OpenRouter</span><span class="pill">Anthropic</span><span class="pill">OpenAI</span>
+        <span class="pill">DeepSeek</span><span class="pill">Gemini</span><span class="pill">LiteLLM</span>
+      </div>
+    </div>
+
+    <div class="connector"></div>
+
+    <div class="arch-layer layer-storage" onclick="showLayerDetail('storage')">
+      <span class="layer-num">6</span>
+      <h3>💾 存储层 (Storage)</h3>
+      <p>nanobot 的「记忆本」和「日记本」。对话记录、长期记忆、技能文件、定时任务——都存在本地文件里。<br>简单、透明，你用文本编辑器就能看到它记住了什么。</p>
+      <div class="tech-pills">
+        <span class="pill">JSONL 会话</span><span class="pill">MEMORY.md</span><span class="pill">HISTORY.md</span>
+        <span class="pill">config.json</span><span class="pill">cron/jobs.json</span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ===================== SECTION: Agent 核心流程 ===================== -->
+<section data-section="agent-flow">
+  <span class="section-tag" style="background:rgba(245,158,11,.15);color:var(--warm)">核心流程</span>
+  <h2 class="reveal">Agent 是怎么「想事情」的？</h2>
+  <p class="lead reveal">
+    这是整个 nanobot 最核心的部分。我们一步一步看：当你发了一条消息，Agent 内部到底发生了什么。
+  </p>
+
+  <div class="flow-steps reveal">
+
+    <div class="flow-step">
+      <div class="step-line">
+        <div class="step-dot" style="background:var(--sky);color:var(--bg)">1</div>
+        <div class="step-bar"></div>
+      </div>
+      <div class="step-content">
+        <h4 style="color:var(--sky)">📨 收到消息</h4>
+        <p>你在 Telegram 里说了句"帮我查一下杭州明天的天气"。Telegram 渠道接收到这条消息，
+        包装成一个标准信封 (<code>InboundMessage</code>)，写上：来自哪个渠道、谁发的、发到哪个聊天里、说了什么。
+        然后丢进消息总线。</p>
+      </div>
+    </div>
+
+    <div class="flow-step">
+      <div class="step-line">
+        <div class="step-dot" style="background:var(--violet);color:var(--bg)">2</div>
+        <div class="step-bar"></div>
+      </div>
+      <div class="step-content">
+        <h4 style="color:var(--violet)">📋 准备上下文</h4>
+        <p>Agent 从总线取出信封，开始「备课」：<br>
+        ① 从 <strong>会话管理器</strong> 里找到你之前的聊天记录（对话不会一次就忘了）<br>
+        ② 从 <strong>记忆系统</strong> 里加载长期记忆（比如"用户喜欢简洁回复"）<br>
+        ③ 从 <strong>技能库</strong> 加载相关能力说明<br>
+        ④ 拼装成一个完整的「提示词」——这就像你要给一个新同事交代任务时，先把背景、要求、注意事项一股脑说清楚。</p>
+      </div>
+    </div>
+
+    <div class="flow-step">
+      <div class="step-line">
+        <div class="step-dot" style="background:var(--coral);color:var(--bg)">3</div>
+        <div class="step-bar"></div>
+      </div>
+      <div class="step-content">
+        <h4 style="color:var(--coral)">🧠 问 AI 大脑</h4>
+        <p>Agent 把准备好的上下文发给 <strong>LLM（大语言模型）</strong>——可以理解为一个超级聪明但没有手的大脑。<br>
+        同时告诉它："你有这些工具可以用——搜索网页、读文件、执行命令……"<br>
+        AI 大脑思考后可能说：<strong>"我需要先搜索一下杭州天气"</strong>（这叫做「工具调用」）。</p>
+      </div>
+    </div>
+
+    <div class="flow-step">
+      <div class="step-line">
+        <div class="step-dot" style="background:var(--teal);color:var(--bg)">4</div>
+        <div class="step-bar"></div>
+      </div>
+      <div class="step-content">
+        <h4 style="color:var(--teal)">🔧 执行工具</h4>
+        <p>Agent 看到 AI 说"搜索杭州天气"，于是去执行 <code>web_search</code> 工具。
+        工具干完活，返回搜索结果："杭州明天晴，25°C"。
+        Agent 把这个结果再塞进对话里，又发回给 AI 大脑——<strong>这就形成了一个循环。</strong></p>
+      </div>
+    </div>
+
+    <div class="flow-step">
+      <div class="step-line">
+        <div class="step-dot" style="background:var(--warm);color:var(--bg)">5</div>
+        <div class="step-bar"></div>
+      </div>
+      <div class="step-content">
+        <h4 style="color:var(--warm)">🔄 循环直到完成</h4>
+        <p>AI 大脑拿到搜索结果后，可能觉得已经够了，直接组织一段话回复你。
+        也可能觉得还不够（比如需要再查个温度曲线），那就再调用工具，Agent 再执行，再喂回……<br>
+        <strong>这个「思考→行动→观察→再思考」的循环，最多转 40 圈</strong>（防止死循环）。
+        直到 AI 大脑返回一段纯文字回答——循环结束。</p>
+      </div>
+    </div>
+
+    <div class="flow-step">
+      <div class="step-line">
+        <div class="step-dot" style="background:var(--lime);color:var(--bg)">6</div>
+        <div class="step-bar"></div>
+      </div>
+      <div class="step-content">
+        <h4 style="color:var(--lime)">💬 回复你</h4>
+        <p>Agent 拿到最终回答，包装成一个出站信封 (<code>OutboundMessage</code>)，
+        丢进消息总线。渠道管理器从总线取出来，按上面写的"Telegram"渠道，原路送回到你的聊天窗口。<br>
+        你看到："杭州明天晴天，最高温 25°C，适合出门遛弯～ ☀️"</p>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="analogy reveal">
+    <div class="label">核心循环比喻</div>
+    <p>
+      想象你让秘书帮你策划生日派对。秘书先想了一下（AI 思考），然后说"我要先查一下附近的餐厅"（工具调用），
+      查完以后带着结果回来继续想（再次思考），发现还需要"预约一下那家评分最高的"（又一次工具调用），
+      最后给你一份完整方案。<strong>这个「想→做→看→再想」的循环，就是 Agent 的灵魂。</strong>
+    </p>
+  </div>
+</section>
+
+<!-- ===================== SECTION: 服务通信 ===================== -->
+<section data-section="comms">
+  <span class="section-tag" style="background:rgba(56,189,248,.15);color:var(--sky)">服务通信</span>
+  <h2 class="reveal">各个服务之间怎么「聊天」的？</h2>
+  <p class="lead reveal">
+    下面用聊天记录的形式，还原一条消息从你发出到收到回复的完整旅程。
+  </p>
+
+  <!-- Chat: 正常流程 -->
+  <div class="chat-sim reveal" id="chatNormal">
+    <div class="chat-header">
+      <span class="dot" style="background:var(--teal)"></span>
+      场景：你问 nanobot "明天杭州天气怎么样"
+    </div>
+    <div class="chat-body" id="chatNormalBody">
+      <!-- JS will populate -->
+    </div>
+  </div>
+
+  <div class="tabs reveal">
+    <button class="tab-btn active" onclick="switchChat('normal')">🌤️ 正常对话</button>
+    <button class="tab-btn" onclick="switchChat('tool')">🔧 多轮工具调用</button>
+    <button class="tab-btn" onclick="switchChat('memory')">💾 记忆整理</button>
+  </div>
+  <div class="tab-panels">
+    <div class="tab-panel active" id="panelNormal">
+      <p style="color:var(--text3);font-size:.88rem">👆 上面的聊天框展示的就是最常见的对话流程。每一条消息都标注了「谁说的」和「说了什么」。</p>
+    </div>
+    <div class="tab-panel" id="panelTool">
+      <p style="color:var(--text3);font-size:.88rem">当 AI 大脑觉得一个工具不够用，需要连续调用好几个工具时，Agent 就会反复循环。点击上方 Tab 切换场景。</p>
+    </div>
+    <div class="tab-panel" id="panelMemory">
+      <p style="color:var(--text3);font-size:.88rem">聊了很多轮之后，Agent 会在后台悄悄把对话浓缩成长期记忆，存进 MEMORY.md 里，下次对话时就能回忆起来。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SECTION: 工具详解 ===================== -->
+<section data-section="tools">
+  <span class="section-tag" style="background:rgba(45,212,191,.15);color:var(--teal)">工具箱</span>
+  <h2 class="reveal">Agent 有哪些工具可以用？</h2>
+  <p class="lead reveal">
+    工具就是 Agent 的「双手」。AI 大脑再聪明，没有工具也只能空口说白话。
+    nanobot 内置了这些工具——
+  </p>
+
+  <div class="tool-grid reveal">
+    <div class="tool-card">
+      <div class="icon">📖</div>
+      <h4>read_file · 读文件</h4>
+      <p>读取电脑上的文件内容。比如你说"看看我的 README"，它就能打开看。</p>
+    </div>
+    <div class="tool-card">
+      <div class="icon">✏️</div>
+      <h4>write_file · 写文件</h4>
+      <p>创建或覆盖文件。比如"帮我写个 Python 脚本保存到桌面"，它就直接写了。</p>
+    </div>
+    <div class="tool-card">
+      <div class="icon">🔧</div>
+      <h4>edit_file · 改文件</h4>
+      <p>精确替换文件里的某段内容，不用全部重写。就像用记事本的"查找替换"。</p>
+    </div>
+    <div class="tool-card">
+      <div class="icon">📂</div>
+      <h4>list_dir · 看目录</h4>
+      <p>列出某个文件夹里有什么文件。相当于你在"文件资源管理器"里打开一个文件夹。</p>
+    </div>
+    <div class="tool-card">
+      <div class="icon">💻</div>
+      <h4>exec · 执行命令</h4>
+      <p>在你电脑的终端里执行命令。比如 <code>python script.py</code> 或 <code>git status</code>。有安全过滤，不会执行危险操作。</p>
+    </div>
+    <div class="tool-card">
+      <div class="icon">🌐</div>
+      <h4>web_search · 搜网页</h4>
+      <p>用 Brave Search 搜索互联网信息。就像你打开浏览器搜索一样。</p>
+    </div>
+    <div class="tool-card">
+      <div class="icon">📄</div>
+      <h4>web_fetch · 抓网页</h4>
+      <p>访问一个具体的 URL，把页面内容抓回来阅读。能过滤掉广告等噪音。</p>
+    </div>
+    <div class="tool-card">
+      <div class="icon">💬</div>
+      <h4>message · 发消息</h4>
+      <p>主动给你发消息（不只是回复）。定时任务完成后就是用这个通知你的。</p>
+    </div>
+    <div class="tool-card">
+      <div class="icon">🐣</div>
+      <h4>spawn · 派子任务</h4>
+      <p>把复杂的子任务交给一个"分身"去做，主 Agent 可以继续做别的事。</p>
+    </div>
+    <div class="tool-card">
+      <div class="icon">⏰</div>
+      <h4>cron · 定时任务</h4>
+      <p>设置闹钟。"每天早上 8 点告诉我天气"——它会创建一个定时任务，到点自动触发。</p>
+    </div>
+    <div class="tool-card">
+      <div class="icon">🔌</div>
+      <h4>MCP 外部工具</h4>
+      <p>通过 MCP 协议接入外部工具服务器。就像给 Agent 装了个 USB 扩展坞，想接什么设备都行。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SECTION: 模型提供商 ===================== -->
+<section data-section="providers">
+  <span class="section-tag" style="background:rgba(251,113,133,.15);color:var(--coral)">AI 大脑</span>
+  <h2 class="reveal">模型提供商：你的 AI 大脑从哪来？</h2>
+  <p class="lead reveal">
+    nanobot 自己不是 AI，它需要调用外面的 AI 模型来「思考」。你可以选择各家 AI 公司——
+    就像选手机套餐，哪家实惠选哪家。
+  </p>
+
+  <div class="analogy reveal">
+    <div class="label">比喻</div>
+    <p>
+      <strong>提供商 (Provider)</strong> 就像电信运营商。你的手机（nanobot）需要接入信号（AI 能力），
+      可以选移动（OpenAI）、联通（Anthropic）、电信（DeepSeek）……功能差不多，价格和质量各有千秋。
+      有一种叫 <strong>OpenRouter</strong> 的特殊运营商，它是「虚拟运营商」——一张卡能用所有网络。
+    </p>
+  </div>
+
+  <div class="provider-row reveal">
+    <div class="provider-chip"><span class="p-dot"></span>OpenRouter（推荐，一个 Key 用全部模型）</div>
+    <div class="provider-chip"><span class="p-dot"></span>Anthropic（Claude）</div>
+    <div class="provider-chip"><span class="p-dot"></span>OpenAI（GPT）</div>
+    <div class="provider-chip"><span class="p-dot"></span>DeepSeek</div>
+    <div class="provider-chip"><span class="p-dot"></span>Google Gemini</div>
+    <div class="provider-chip"><span class="p-dot"></span>Groq（还能做语音转文字）</div>
+    <div class="provider-chip"><span class="p-dot"></span>通义千问 (DashScope)</div>
+    <div class="provider-chip"><span class="p-dot"></span>智谱 (Zhipu)</div>
+    <div class="provider-chip"><span class="p-dot"></span>Moonshot / Kimi</div>
+    <div class="provider-chip"><span class="p-dot"></span>MiniMax</div>
+    <div class="provider-chip"><span class="p-dot"></span>硅基流动 (SiliconFlow)</div>
+    <div class="provider-chip"><span class="p-dot"></span>火山引擎 (VolcEngine)</div>
+    <div class="provider-chip"><span class="p-dot"></span>vLLM（自己部署本地模型）</div>
+  </div>
+
+  <div class="reveal" style="margin-top:2rem">
+    <h3 style="font-size:1rem;margin-bottom:.8rem;color:var(--coral)">自动匹配是怎么回事？</h3>
+    <p style="font-size:.9rem;color:var(--text2);line-height:1.8">
+      你在配置文件里写 <code>"model": "deepseek/deepseek-chat"</code>，nanobot 看到名字里有 <code>deepseek</code>，
+      就自动去找 DeepSeek 的 API Key 来用——这就是<strong>注册表自动匹配</strong>。
+      每家提供商在代码里注册了自己的"关键词"，模型名里只要出现关键词就能配对上。
+      你也可以手动指定 <code>"provider": "deepseek"</code>，那就不用猜了。
+    </p>
+  </div>
+</section>
+
+<!-- ===================== SECTION: 记忆系统 ===================== -->
+<section data-section="memory">
+  <span class="section-tag" style="background:rgba(163,230,53,.15);color:var(--lime)">记忆系统</span>
+  <h2 class="reveal">它怎么记住你说过的话？</h2>
+  <p class="lead reveal">
+    nanobot 有两种记忆，短期和长期。就像人一样——你记得今天中午吃了什么（短期），
+    也记得自己最喜欢的菜（长期）。
+  </p>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.5rem;margin:2rem 0" class="reveal">
+    <div style="background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius);padding:1.5rem">
+      <h3 style="color:var(--sky);font-size:1rem;margin-bottom:.5rem">📝 短期记忆：会话 (Session)</h3>
+      <p style="font-size:.88rem;color:var(--text2);line-height:1.7">
+        就是聊天记录。每次对话都以 <code>channel:chat_id</code>（比如 <code>telegram:12345</code>）为 key 存一份。
+        存成 JSONL 格式——每行一条消息，简单粗暴。Agent 每次回答前都会把最近的聊天记录带上，
+        这样它才知道"我们之前在聊什么"。
+      </p>
+    </div>
+    <div style="background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius);padding:1.5rem">
+      <h3 style="color:var(--lime);font-size:1rem;margin-bottom:.5rem">🧠 长期记忆：MEMORY.md</h3>
+      <p style="font-size:.88rem;color:var(--text2);line-height:1.7">
+        聊多了以后（默认 100 轮），Agent 会让 AI 把对话浓缩成要点（比如"用户偏好中文回复""用户在做 Python 项目"），
+        写进 <code>MEMORY.md</code>。同时把对话摘要追加到 <code>HISTORY.md</code>——
+        这是个时间线日记，方便回溯。下次对话开始时，Agent 读取 MEMORY.md，就像"回忆起来了"。
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SECTION: 技能系统 ===================== -->
+<section data-section="skills">
+  <span class="section-tag" style="background:rgba(245,158,11,.15);color:var(--warm)">技能系统</span>
+  <h2 class="reveal">Skills：给 Agent 装插件</h2>
+  <p class="lead reveal">
+    技能 (Skill) 就像手机 App。nanobot 自带了一些 App（天气、GitHub、定时任务），
+    你也可以自己写新 App 装上去。
+  </p>
+
+  <div class="analogy reveal">
+    <div class="label">怎么装技能？</div>
+    <p>
+      每个技能就是一个 Markdown 文件（<code>SKILL.md</code>），放在 <code>workspace/skills/技能名/</code> 文件夹下。
+      Agent 启动时会扫描这些文件，在需要的时候把对应技能的说明注入到提示词里——
+      相当于临时给 AI 大脑"补课"。比如"我现在要用 GitHub，先看看 GitHub 技能的说明书"。
+    </p>
+  </div>
+</section>
+
+<!-- ===================== SECTION: 定时任务 ===================== -->
+<section data-section="cron">
+  <span class="section-tag" style="background:rgba(167,139,250,.15);color:var(--violet)">自动化</span>
+  <h2 class="reveal">Cron & Heartbeat：让 Agent 自己动起来</h2>
+  <p class="lead reveal">
+    Agent 不只是你问它才答。它还能定时做事（Cron）和定期巡逻（Heartbeat）。
+  </p>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.5rem;margin:2rem 0" class="reveal">
+    <div style="background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius);padding:1.5rem">
+      <h3 style="color:var(--violet);font-size:1rem;margin-bottom:.5rem">⏰ Cron：定时闹钟</h3>
+      <p style="font-size:.88rem;color:var(--text2);line-height:1.7">
+        你可以告诉 nanobot"每天早上 8 点帮我查天气"，它会创建一个定时任务（像手机闹钟）。
+        到点了，闹钟响了，Agent 就自动起来干活，干完通过消息总线把结果发到你的聊天窗口。
+        支持三种模式：<strong>一次性</strong>（到时间只响一次）、<strong>间隔重复</strong>（每隔 N 小时）、<strong>cron 表达式</strong>（高级日历规则）。
+      </p>
+    </div>
+    <div style="background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius);padding:1.5rem">
+      <h3 style="color:var(--warm);font-size:1rem;margin-bottom:.5rem">💓 Heartbeat：心跳巡逻</h3>
+      <p style="font-size:.88rem;color:var(--text2);line-height:1.7">
+        每 30 分钟，Gateway 会"敲一下" Agent，说"起来看看有没有需要做的事"。
+        Agent 读取 <code>HEARTBEAT.md</code> 文件，里面列着一些例行公事（比如"检查邮箱有没有紧急邮件"）。
+        如果有任务就做，没有就继续睡——像夜间保安的定时巡逻。
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SECTION: 代码结构 ===================== -->
+<section data-section="code">
+  <span class="section-tag" style="background:rgba(45,212,191,.15);color:var(--teal)">代码地图</span>
+  <h2 class="reveal">项目文件结构</h2>
+  <p class="lead reveal">打开项目文件夹，你会看到这样的结构。每个文件夹就是一个"部门"——</p>
+
+  <div class="file-tree reveal">
+<span class="dir">nanobot/</span>
+├── <span class="dir">agent/</span>           <span class="comment">← 🧠 大脑指挥部（最核心！）</span>
+│   ├── <span class="file">loop.py</span>      <span class="comment">← Agent 主循环：收消息→问AI→用工具→回复</span>
+│   ├── <span class="file">context.py</span>   <span class="comment">← 提示词组装工厂：把记忆、技能、历史拼成一段话</span>
+│   ├── <span class="file">memory.py</span>    <span class="comment">← 记忆系统：对话浓缩成长期记忆</span>
+│   ├── <span class="file">skills.py</span>    <span class="comment">← 技能加载器：扫描并注入技能说明</span>
+│   ├── <span class="file">subagent.py</span>  <span class="comment">← 子任务分身</span>
+│   └── <span class="dir">tools/</span>       <span class="comment">← 🔧 工具箱（文件、命令、网页、消息……）</span>
+├── <span class="dir">channels/</span>        <span class="comment">← 📱 聊天渠道（Telegram/Discord/飞书……）</span>
+├── <span class="dir">bus/</span>             <span class="comment">← 🚌 消息传送带</span>
+├── <span class="dir">providers/</span>       <span class="comment">← 🤖 AI 模型对接（OpenRouter/Anthropic……）</span>
+├── <span class="dir">session/</span>         <span class="comment">← 💬 聊天记录管理</span>
+├── <span class="dir">cron/</span>            <span class="comment">← ⏰ 定时任务引擎</span>
+├── <span class="dir">heartbeat/</span>       <span class="comment">← 💓 心跳巡逻服务</span>
+├── <span class="dir">skills/</span>          <span class="comment">← 🎯 内置技能包</span>
+├── <span class="dir">config/</span>          <span class="comment">← ⚙️ 配置加载与校验</span>
+└── <span class="dir">cli/</span>             <span class="comment">← 🖥️ 命令行入口（nanobot agent / gateway）</span>
+  </div>
+</section>
+
+<!-- ===================== SECTION: 启动流程 ===================== -->
+<section data-section="startup">
+  <span class="section-tag" style="background:rgba(251,113,133,.15);color:var(--coral)">启动过程</span>
+  <h2 class="reveal">输入 <code>nanobot agent</code> 后发生了什么？</h2>
+  <p class="lead reveal">从你敲下回车键到 nanobot 准备好接受你的输入，幕后经历了这些——</p>
+
+  <div class="demo-box reveal">
+    <div class="demo-toolbar">
+      <span class="circle" style="background:#ff5f57"></span>
+      <span class="circle" style="background:#febc2e"></span>
+      <span class="circle" style="background:#28c840"></span>
+      <span style="margin-left:8px">Terminal</span>
+    </div>
+    <div class="demo-terminal">
+      <span class="prompt">$</span> <span class="cmd">nanobot agent</span><br>
+      <br>
+      <span class="output">  ❶ <span class="highlight">pip 生成的入口脚本</span> .venv/bin/nanobot 被执行</span><br>
+      <span class="output">     → 它只做一件事：from nanobot.cli.commands import app; app()</span><br>
+      <br>
+      <span class="output">  ❷ <span class="highlight">Typer 解析命令</span> → "agent" 匹配到 @app.command() def agent()</span><br>
+      <br>
+      <span class="output">  ❸ <span class="highlight">加载配置</span> → 读取 ~/.nanobot/config.json</span><br>
+      <span class="output">     → 知道了要用哪个模型、哪个提供商、API Key 是什么</span><br>
+      <br>
+      <span class="output">  ❹ <span class="highlight">创建 Provider</span> → 根据配置选择 LiteLLM / Custom / Azure 等</span><br>
+      <span class="output">     → 设置好 API Key 和请求地址</span><br>
+      <br>
+      <span class="output">  ❺ <span class="highlight">创建 AgentLoop</span> → 组装大脑指挥部</span><br>
+      <span class="output">     → 注册所有内置工具（文件、命令、搜索……）</span><br>
+      <span class="output">     → 初始化会话管理器、记忆系统</span><br>
+      <br>
+      <span class="output">  ❻ <span class="highlight">进入交互模式</span> → 创建消息总线 + 启动 Agent 主循环</span><br>
+      <br>
+      <span class="highlight">🐈 Interactive mode (type exit or Ctrl+C to quit)</span><br>
+      <br>
+      <span class="prompt">You:</span> <span class="cmd" style="animation:blink 1s infinite">█</span>
+    </div>
+  </div>
+
+  <style>@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}</style>
+</section>
+
+<!-- ===================== SECTION: 配置文件 ===================== -->
+<section data-section="config">
+  <span class="section-tag" style="background:rgba(56,189,248,.15);color:var(--sky)">配置文件</span>
+  <h2 class="reveal">config.json 里都配了什么？</h2>
+  <p class="lead reveal">nanobot 的"控制面板"只有一个文件：<code>~/.nanobot/config.json</code>。核心就三块——</p>
+
+  <div class="config-preview reveal">
+{
+  <span class="comment">// 🧠 第一块：AI 大脑设置</span>
+  <span class="key">"agents"</span>: {
+    <span class="key">"defaults"</span>: {
+      <span class="key">"model"</span>: <span class="val">"deepseek/deepseek-chat"</span>,   <span class="comment">// 用哪个 AI 模型</span>
+      <span class="key">"provider"</span>: <span class="val">"deepseek"</span>,              <span class="comment">// 用哪家提供商</span>
+      <span class="key">"maxTokens"</span>: <span class="val">8192</span>,                   <span class="comment">// 回复最大长度</span>
+      <span class="key">"temperature"</span>: <span class="val">0.1</span>                   <span class="comment">// 创造力（越低越严谨）</span>
+    }
+  },
+
+  <span class="comment">// 📱 第二块：聊天渠道设置</span>
+  <span class="key">"channels"</span>: {
+    <span class="key">"telegram"</span>: { <span class="key">"enabled"</span>: <span class="val">true</span>, <span class="key">"token"</span>: <span class="val">"BOT_TOKEN"</span> },
+    <span class="key">"discord"</span>:  { <span class="key">"enabled"</span>: <span class="val">false</span> }
+    <span class="comment">// ...其他渠道</span>
+  },
+
+  <span class="comment">// 🔑 第三块：AI 提供商的 API Key</span>
+  <span class="key">"providers"</span>: {
+    <span class="key">"deepseek"</span>: { <span class="key">"apiKey"</span>: <span class="val">"sk-xxx"</span> },
+    <span class="key">"openrouter"</span>: { <span class="key">"apiKey"</span>: <span class="val">""</span> }
+    <span class="comment">// ...其他提供商</span>
+  }
+}
+  </div>
+</section>
+
+<!-- ===================== SECTION: 技术栈 ===================== -->
+<section data-section="tech">
+  <span class="section-tag" style="background:rgba(245,158,11,.15);color:var(--warm)">技术清单</span>
+  <h2 class="reveal">用到了哪些技术？</h2>
+  <p class="lead reveal">全部用大白话解释一遍——</p>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1rem;margin:2rem 0" class="reveal">
+
+    <div style="background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius-sm);padding:1.2rem">
+      <h4 style="color:var(--warm);margin-bottom:.3rem">🐍 Python 3.11+</h4>
+      <p style="font-size:.85rem;color:var(--text2)">编程语言。就像说"这本书是用中文写的"——nanobot 是用 Python 写的。</p>
+    </div>
+
+    <div style="background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius-sm);padding:1.2rem">
+      <h4 style="color:var(--warm);margin-bottom:.3rem">⚡ asyncio</h4>
+      <p style="font-size:.85rem;color:var(--text2)">Python 自带的"同时做好几件事"能力。像一个人一边等水烧开一边切菜——不是两个人，是一个人灵活切换。</p>
+    </div>
+
+    <div style="background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius-sm);padding:1.2rem">
+      <h4 style="color:var(--warm);margin-bottom:.3rem">🔗 LiteLLM</h4>
+      <p style="font-size:.85rem;color:var(--text2)">万能翻译器。不管你用哪家 AI（OpenAI/Claude/DeepSeek），都用同一个接口调用。就像万能充电头。</p>
+    </div>
+
+    <div style="background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius-sm);padding:1.2rem">
+      <h4 style="color:var(--warm);margin-bottom:.3rem">📐 Pydantic</h4>
+      <p style="font-size:.85rem;color:var(--text2)">数据校验员。确保配置文件的格式是对的——少写一个字段？类型不对？它立刻告诉你。</p>
+    </div>
+
+    <div style="background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius-sm);padding:1.2rem">
+      <h4 style="color:var(--warm);margin-bottom:.3rem">🖥️ Typer</h4>
+      <p style="font-size:.85rem;color:var(--text2)">命令行工具框架。让你能在终端里输入 <code>nanobot agent</code> 就启动程序，还自动生成 --help 文档。</p>
+    </div>
+
+    <div style="background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius-sm);padding:1.2rem">
+      <h4 style="color:var(--warm);margin-bottom:.3rem">🌐 httpx</h4>
+      <p style="font-size:.85rem;color:var(--text2)">网络请求库。Agent 要搜索网页、调 API，都靠它发 HTTP 请求——就像浏览器背后的"快递员"。</p>
+    </div>
+
+    <div style="background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius-sm);padding:1.2rem">
+      <h4 style="color:var(--warm);margin-bottom:.3rem">🔌 MCP (Model Context Protocol)</h4>
+      <p style="font-size:.85rem;color:var(--text2)">插件协议。让 Agent 能连接外部工具服务器，就像 USB 接口——只要符合标准，什么设备都能插上用。</p>
+    </div>
+
+    <div style="background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius-sm);padding:1.2rem">
+      <h4 style="color:var(--warm);margin-bottom:.3rem">📦 Hatchling</h4>
+      <p style="font-size:.85rem;color:var(--text2)">打包工具。把代码打成可安装的包——就像把散装零件组装成盒装商品，方便别人一键安装。</p>
+    </div>
+
+  </div>
+</section>
+
+<!-- ===================== SECTION: 总结 ===================== -->
+<section data-section="summary">
+  <h2 class="reveal" style="text-align:center;margin-bottom:2rem">🐈 最后来一张全景串联</h2>
+
+  <div class="chat-sim reveal">
+    <div class="chat-header">
+      <span class="dot" style="background:var(--warm)"></span>
+      一句话串起整个系统
+    </div>
+    <div class="chat-body" id="chatSummary">
+    </div>
+  </div>
+
+  <div class="analogy reveal" style="text-align:center;margin-top:3rem">
+    <div class="label" style="text-align:center">全文总结</div>
+    <p style="text-align:center;font-size:1.05rem">
+      nanobot = <strong style="color:var(--sky)">前台接电话</strong>（渠道）
+      + <strong style="color:var(--violet)">传送带运消息</strong>（总线）
+      + <strong style="color:var(--warm)">秘书想方案</strong>（Agent 循环）
+      + <strong style="color:var(--teal)">干活的双手</strong>（工具）
+      + <strong style="color:var(--coral)">聪明的大脑</strong>（AI 模型）
+      + <strong style="color:var(--lime)">靠谱的笔记本</strong>（存储/记忆）
+    </p>
+  </div>
+</section>
+
+<footer class="footer">
+  <p>🐈 nanobot — 一个超轻量的个人 AI 助手</p>
+  <p style="margin-top:.5rem">
+    <a href="https://github.com/HKUDS/nanobot" target="_blank">GitHub</a> ·
+    核心代码仅 ~4000 行 · MIT License
+  </p>
+</footer>
+
+<script>
+// ============================
+// Chat Simulation Data
+// ============================
+const chatScenarios = {
+  normal: [
+    { side:'left', cls:'msg-user', sender:'👤 你 (Telegram)', text:'明天杭州天气怎么样？', delay:0 },
+    { side:'left', cls:'msg-bus', sender:'🚌 消息总线', text:'收到！打包成 InboundMessage，转交给 Agent……', delay:600 },
+    { side:'right', cls:'msg-agent', sender:'🧠 Agent 指挥部', text:'收到用户消息。让我准备一下：加载聊天记录、长期记忆、技能列表……上下文组装完毕！', delay:1200 },
+    { side:'right', cls:'msg-agent', sender:'🧠 Agent → LLM', text:'嘿 AI 大脑，这是用户的问题和全部背景。你有这些工具可以用：web_search, web_fetch……', delay:1800 },
+    { side:'left', cls:'msg-llm', sender:'🤖 AI 大脑 (DeepSeek)', text:'我需要搜索一下。请调用 <code>web_search("杭州 明天 天气")</code>', delay:2400 },
+    { side:'right', cls:'msg-tool', sender:'🔧 web_search 工具', text:'搜索完毕！结果：杭州明天晴，最高 25°C，最低 15°C，微风。', delay:3000 },
+    { side:'right', cls:'msg-agent', sender:'🧠 Agent → LLM', text:'搜索结果在这里了，请组织回复。', delay:3500 },
+    { side:'left', cls:'msg-llm', sender:'🤖 AI 大脑', text:'好的，不需要更多信息了。回复如下：\n"杭州明天是晴天☀️，气温 15~25°C，微风，很适合出门！"', delay:4000 },
+    { side:'right', cls:'msg-agent', sender:'🧠 Agent', text:'拿到最终回复，打包成 OutboundMessage 发到总线……', delay:4500 },
+    { side:'left', cls:'msg-bus', sender:'🚌 消息总线 → Telegram', text:'收到出站消息，我来送回 Telegram 渠道。', delay:5000 },
+    { side:'left', cls:'msg-user', sender:'👤 你看到的', text:'杭州明天是晴天☀️，气温 15~25°C，微风，很适合出门！', delay:5500 },
+  ],
+  tool: [
+    { side:'left', cls:'msg-user', sender:'👤 你', text:'帮我写一个 Python 脚本算斐波那契数列，保存到 ~/fib.py，然后运行一下看看结果。', delay:0 },
+    { side:'right', cls:'msg-agent', sender:'🧠 Agent → LLM', text:'（带上全部上下文）用户要写脚本、保存、运行，你有 write_file 和 exec 工具。', delay:600 },
+    { side:'left', cls:'msg-llm', sender:'🤖 AI 大脑', text:'第一步：调用 <code>write_file</code> 写入斐波那契脚本到 ~/fib.py', delay:1200 },
+    { side:'right', cls:'msg-tool', sender:'🔧 write_file', text:'✅ 文件已写入 ~/fib.py', delay:1800 },
+    { side:'right', cls:'msg-agent', sender:'🧠 Agent → LLM', text:'文件写好了，继续。', delay:2200 },
+    { side:'left', cls:'msg-llm', sender:'🤖 AI 大脑', text:'第二步：调用 <code>exec("python ~/fib.py")</code> 运行脚本', delay:2600 },
+    { side:'right', cls:'msg-tool', sender:'🔧 exec', text:'输出：0, 1, 1, 2, 3, 5, 8, 13, 21, 34', delay:3200 },
+    { side:'right', cls:'msg-agent', sender:'🧠 Agent → LLM', text:'运行结果在这里。', delay:3600 },
+    { side:'left', cls:'msg-llm', sender:'🤖 AI 大脑', text:'搞定！不需要更多工具了。这是我的回复……', delay:4000 },
+    { side:'left', cls:'msg-user', sender:'👤 你看到的', text:'脚本已保存到 ~/fib.py 并运行成功！前 10 个斐波那契数是：0, 1, 1, 2, 3, 5, 8, 13, 21, 34 🎉', delay:4600 },
+  ],
+  memory: [
+    { side:'left', cls:'msg-user', sender:'👤 你', text:'（聊了 100 多轮以后……）', delay:0 },
+    { side:'right', cls:'msg-agent', sender:'🧠 Agent (后台)', text:'检测到未整理的对话已超过 100 轮，是时候整理记忆了。', delay:600 },
+    { side:'right', cls:'msg-agent', sender:'🧠 Agent → LLM', text:'请帮我把这些对话浓缩一下。你有一个 <code>save_memory</code> 工具。', delay:1200 },
+    { side:'left', cls:'msg-llm', sender:'🤖 AI 大脑', text:'好的，调用 <code>save_memory</code>：\n记忆更新 = "用户是 Python 开发者，偏好中文回复，正在做 nanobot 项目"\n历史摘要 = "讨论了项目架构和环境配置"', delay:1800 },
+    { side:'right', cls:'msg-storage', sender:'💾 存储', text:'✅ MEMORY.md 已更新\n✅ HISTORY.md 追加了一条 [2026-03-08 17:00] 记录', delay:2400 },
+    { side:'right', cls:'msg-agent', sender:'🧠 Agent', text:'记忆整理完毕！下次对话我就能"回忆"起这些了。用户完全无感知。', delay:3000 },
+  ]
+};
+
+let currentScenario = 'normal';
+
+function showLayerDetail(layer) {
+  const targets = {
+    channels: 'comms', bus: 'comms', agent: 'agent-flow',
+    tools: 'tools', providers: 'providers', storage: 'memory'
+  };
+  const target = targets[layer] || layer;
+  const el = document.querySelector(`[data-section="${target}"]`);
+  if (el) el.scrollIntoView({ behavior: 'smooth' });
+}
+
+function renderChat(scenario) {
+  const body = document.getElementById('chatNormalBody');
+  body.innerHTML = '';
+  const msgs = chatScenarios[scenario];
+  msgs.forEach((m, i) => {
+    const div = document.createElement('div');
+    div.className = `chat-msg ${m.side} ${m.cls}`;
+    div.style.animationDelay = `${m.delay}ms`;
+    div.innerHTML = `<div class="sender">${m.sender}</div>${m.text}`;
+    body.appendChild(div);
+  });
+}
+
+function switchChat(scenario) {
+  currentScenario = scenario;
+  const names = ['normal','tool','memory'];
+  const panelIds = ['panelNormal','panelTool','panelMemory'];
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    b.classList.toggle('active', names[i] === scenario);
+  });
+  const idx = names.indexOf(scenario);
+  document.querySelectorAll('.tab-panel').forEach((p,i) => {
+    p.classList.toggle('active', i === idx);
+  });
+  renderChat(scenario);
+}
+
+// Summary chat
+function renderSummaryChat() {
+  const body = document.getElementById('chatSummary');
+  const msgs = [
+    { side:'left', cls:'msg-user', sender:'📱 渠道层', text:'用户在 Telegram 说了句话，我把它装进标准信封丢到传送带上。', delay:0 },
+    { side:'right', cls:'msg-bus', sender:'🚌 消息总线', text:'信封到了！Agent 来取件吧。', delay:400 },
+    { side:'left', cls:'msg-agent', sender:'🧠 Agent', text:'取到了。让我翻翻聊天记录、读读记忆、配好技能说明……万事俱备，问 AI 大脑！', delay:800 },
+    { side:'right', cls:'msg-llm', sender:'🤖 AI 大脑', text:'我想了想，需要搜个网页才能答好。帮我调一下 web_search。', delay:1200 },
+    { side:'left', cls:'msg-tool', sender:'🔧 工具', text:'搜完了，结果在这里。', delay:1600 },
+    { side:'right', cls:'msg-llm', sender:'🤖 AI 大脑', text:'够了！这是最终回答。', delay:2000 },
+    { side:'left', cls:'msg-agent', sender:'🧠 Agent', text:'收到回答，包好信封放回传送带。同时存好聊天记录。', delay:2400 },
+    { side:'right', cls:'msg-bus', sender:'🚌 消息总线 → 📱 渠道', text:'出站信封到了，送回 Telegram！', delay:2800 },
+    { side:'left', cls:'msg-user', sender:'👤 用户', text:'收到回复了！就这么简单 😊', delay:3200 },
+  ];
+  msgs.forEach(m => {
+    const div = document.createElement('div');
+    div.className = `chat-msg ${m.side} ${m.cls}`;
+    div.style.animationDelay = `${m.delay}ms`;
+    div.innerHTML = `<div class="sender">${m.sender}</div>${m.text}`;
+    body.appendChild(div);
+  });
+}
+
+// ============================
+// Scroll Reveal
+// ============================
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.1 });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// ============================
+// Nav Dots
+// ============================
+const sections = document.querySelectorAll('section[data-section], header[data-section]');
+const navContainer = document.getElementById('navDots');
+const sectionNames = {
+  intro:'开篇', tldr:'一句话', arch:'架构', 'agent-flow':'Agent核心',
+  comms:'通信', tools:'工具', providers:'AI大脑', memory:'记忆',
+  skills:'技能', cron:'自动化', code:'代码', startup:'启动', config:'配置', tech:'技术栈', summary:'总结'
+};
+sections.forEach(s => {
+  const key = s.dataset.section;
+  const dot = document.createElement('button');
+  dot.className = 'nav-dot';
+  dot.dataset.section = key;
+  dot.innerHTML = `<span class="tip">${sectionNames[key] || key}</span>`;
+  dot.onclick = () => s.scrollIntoView({ behavior:'smooth' });
+  navContainer.appendChild(dot);
+});
+const dotObserver = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      document.querySelectorAll('.nav-dot').forEach(d => d.classList.toggle('active', d.dataset.section === e.target.dataset.section));
+    }
+  });
+}, { threshold: 0.3 });
+sections.forEach(s => dotObserver.observe(s));
+
+// ============================
+// Init
+// ============================
+renderChat('normal');
+renderSummaryChat();
+</script>
+</body>
+</html>

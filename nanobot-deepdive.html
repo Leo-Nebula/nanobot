@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🐈 nanobot 源码深度解析 — 从一行命令到 AI 回复的完整旅程</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600&family=Fraunces:wght@700;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#09090b;--bg2:#18181b;--bg3:#27272a;--bg4:#3f3f46;
+  --amber:#f59e0b;--amber2:#fbbf24;--amber3:#fde68a;
+  --rose:#fb7185;--cyan:#22d3ee;--blue:#60a5fa;--emerald:#34d399;
+  --purple:#a78bfa;--lime:#a3e635;--orange:#fb923c;--pink:#f472b6;
+  --text:#fafafa;--text2:#d4d4d8;--text3:#a1a1aa;
+  --r:14px;--rs:8px;
+}
+html{scroll-behavior:smooth;background:var(--bg)}
+body{font-family:'Noto Sans SC',sans-serif;color:var(--text);line-height:1.85;overflow-x:hidden}
+code,.mono{font-family:'JetBrains Mono',monospace;font-size:.88em}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:3px}
+a{color:var(--cyan);text-decoration:none}a:hover{text-decoration:underline}
+
+/* hero */
+.hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:2rem;position:relative}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 50% at 50% 40%,rgba(245,158,11,.07),transparent);pointer-events:none}
+.hero-icon{font-size:5rem;margin-bottom:1rem;animation:bob 3s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.hero h1{font-family:'Fraunces',serif;font-size:clamp(2rem,5vw,3.8rem);font-weight:900;background:linear-gradient(135deg,var(--amber),var(--rose));-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1.2;margin-bottom:.8rem}
+.hero .sub{font-size:1.15rem;color:var(--text2);max-width:620px;margin-bottom:2rem}
+.hero .scroll-cue{color:var(--text3);font-size:.85rem;animation:bounce 2s infinite}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(6px)}}
+
+/* toc */
+.toc{max-width:900px;margin:0 auto;padding:2rem;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:.8rem}
+.toc-item{background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--rs);padding:.8rem 1rem;display:flex;align-items:center;gap:.7rem;cursor:pointer;transition:all .25s;font-size:.9rem}
+.toc-item:hover{border-color:var(--amber);transform:translateX(4px)}
+.toc-item .num{font-family:'Fraunces',serif;font-weight:900;font-size:1.1rem;color:var(--amber);min-width:1.8rem}
+
+/* sections */
+section{padding:4.5rem 2rem;max-width:960px;margin:0 auto}
+.tag{display:inline-block;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:2px;padding:3px 12px;border-radius:16px;margin-bottom:.8rem}
+section h2{font-family:'Fraunces',serif;font-size:clamp(1.8rem,3.5vw,2.6rem);font-weight:900;margin-bottom:.4rem;line-height:1.25}
+section .lead{font-size:1.05rem;color:var(--text2);margin-bottom:2rem;max-width:700px}
+
+/* tip box */
+.tip{background:var(--bg2);border:1px solid var(--bg3);border-left:3px solid var(--amber);border-radius:var(--rs);padding:1rem 1.2rem;margin:1.5rem 0;font-size:.92rem;color:var(--text2);line-height:1.7}
+.tip strong{color:var(--amber)}
+
+/* code block */
+.codeblock{background:#111113;border:1px solid var(--bg3);border-radius:var(--r);overflow:hidden;margin:1.5rem 0}
+.codeblock .bar{background:var(--bg3);padding:.45rem 1rem;font-size:.75rem;color:var(--text3);display:flex;align-items:center;gap:.4rem}
+.codeblock .bar .dots{display:flex;gap:5px}.codeblock .bar .dot{width:9px;height:9px;border-radius:50%}
+.codeblock pre{padding:1.2rem 1.4rem;overflow-x:auto;font-family:'JetBrains Mono',monospace;font-size:.8rem;line-height:1.75;color:var(--text2);white-space:pre;word-wrap:break-word}
+.codeblock .hl{color:var(--amber)}.codeblock .cm{color:var(--text3);font-style:italic}.codeblock .kw{color:var(--purple)}.codeblock .fn{color:var(--cyan)}.codeblock .st{color:var(--emerald)}.codeblock .num{color:var(--orange)}
+
+/* class card */
+.class-card{background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--r);margin:1.5rem 0;overflow:hidden}
+.class-card .hd{padding:1rem 1.4rem;border-bottom:1px solid var(--bg3);display:flex;align-items:center;gap:.6rem;cursor:pointer;user-select:none}
+.class-card .hd .icon{font-size:1.3rem}
+.class-card .hd h3{font-size:1rem;font-weight:700;flex:1}
+.class-card .hd .file{font-size:.75rem;color:var(--text3);font-family:'JetBrains Mono',monospace}
+.class-card .hd .arrow{transition:transform .3s;color:var(--text3)}
+.class-card.open .hd .arrow{transform:rotate(90deg)}
+.class-card .body{padding:0 1.4rem;max-height:0;overflow:hidden;transition:max-height .4s ease,padding .4s ease}
+.class-card.open .body{max-height:5000px;padding:1.2rem 1.4rem}
+.class-card .body p{font-size:.9rem;color:var(--text2);margin-bottom:.8rem;line-height:1.75}
+
+/* method table */
+.mtable{width:100%;border-collapse:collapse;margin:.8rem 0;font-size:.82rem}
+.mtable th{text-align:left;padding:.5rem .6rem;background:var(--bg3);color:var(--text2);font-weight:600;border-radius:var(--rs) var(--rs) 0 0}
+.mtable td{padding:.45rem .6rem;border-bottom:1px solid rgba(255,255,255,.04);color:var(--text2);vertical-align:top}
+.mtable td:first-child{color:var(--cyan);font-family:'JetBrains Mono',monospace;font-size:.8rem;white-space:nowrap}
+.mtable tr:hover td{background:rgba(255,255,255,.02)}
+
+/* flow timeline */
+.timeline{position:relative;padding-left:2.5rem;margin:2rem 0}
+.timeline::before{content:'';position:absolute;left:14px;top:0;bottom:0;width:2px;background:var(--bg3)}
+.tl-step{position:relative;margin-bottom:2rem}
+.tl-dot{position:absolute;left:-2.5rem;top:4px;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:900;z-index:1}
+.tl-step h4{font-size:.95rem;font-weight:700;margin-bottom:.25rem}
+.tl-step p{font-size:.88rem;color:var(--text2);line-height:1.75}
+.tl-step .detail{background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--rs);padding:.8rem 1rem;margin-top:.6rem;font-size:.82rem;color:var(--text3);line-height:1.7;font-family:'JetBrains Mono',monospace;white-space:pre-wrap}
+
+/* diagram */
+.diagram{background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--r);padding:1.5rem;margin:1.5rem 0;overflow-x:auto;white-space:pre;font-family:'JetBrains Mono',monospace;font-size:.78rem;line-height:1.7;color:var(--text3)}
+.diagram .hl{color:var(--amber)}.diagram .c1{color:var(--cyan)}.diagram .c2{color:var(--purple)}.diagram .c3{color:var(--emerald)}.diagram .c4{color:var(--rose)}.diagram .c5{color:var(--lime)}
+
+/* mini cards grid */
+.mini-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.8rem;margin:1.5rem 0}
+.mini-card{background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--rs);padding:1rem;transition:all .25s}
+.mini-card:hover{border-color:var(--cyan);transform:translateY(-2px)}
+.mini-card h4{font-size:.85rem;margin-bottom:.2rem}.mini-card p{font-size:.78rem;color:var(--text3);line-height:1.6}
+
+/* nav */
+.side-nav{position:fixed;right:1rem;top:50%;transform:translateY(-50%);z-index:100;display:flex;flex-direction:column;gap:10px}
+.side-dot{width:9px;height:9px;border-radius:50%;background:var(--bg4);border:none;cursor:pointer;transition:all .3s;position:relative}
+.side-dot.active{background:var(--amber);box-shadow:0 0 10px rgba(245,158,11,.4)}
+.side-dot .label{position:absolute;right:20px;top:50%;transform:translateY(-50%);white-space:nowrap;font-size:.7rem;color:var(--text3);background:var(--bg3);padding:2px 8px;border-radius:4px;opacity:0;transition:opacity .2s;pointer-events:none}
+.side-dot:hover .label{opacity:1}
+
+/* reveal */
+.rv{opacity:0;transform:translateY(24px);transition:opacity .5s,transform .5s}.rv.vis{opacity:1;transform:translateY(0)}
+
+/* responsive */
+@media(max-width:768px){section{padding:3rem 1rem}.side-nav{display:none}.toc{grid-template-columns:1fr}}
+
+.footer{text-align:center;padding:4rem 2rem 2rem;color:var(--text3);font-size:.85rem}
+</style>
+</head>
+<body>
+
+<nav class="side-nav" id="sideNav"></nav>
+
+<!-- ============ HERO ============ -->
+<header class="hero" id="sec-hero" data-nav="开篇">
+  <div class="hero-icon">🔬</div>
+  <h1>nanobot 源码深度解析</h1>
+  <p class="sub">从你在终端敲下一行字开始，一路追踪到 AI 回复出现在屏幕上。<br>每一个类、每一个方法、每一步数据流转——全部摊开讲明白。</p>
+  <div class="scroll-cue">↓ 开始逐行拆解</div>
+</header>
+
+<!-- ============ TOC ============ -->
+<div class="toc" id="toc">
+  <a class="toc-item" href="#sec-overview"><span class="num">01</span>全局鸟瞰：一条消息的完整旅程</a>
+  <a class="toc-item" href="#sec-entry"><span class="num">02</span>入口：从 nanobot agent 到 Python 函数</a>
+  <a class="toc-item" href="#sec-config"><span class="num">03</span>Config：配置文件怎么变成代码对象</a>
+  <a class="toc-item" href="#sec-provider"><span class="num">04</span>Provider：AI 大脑的"电话线"</a>
+  <a class="toc-item" href="#sec-bus"><span class="num">05</span>MessageBus：消息传送带</a>
+  <a class="toc-item" href="#sec-session"><span class="num">06</span>Session：聊天记录管理员</a>
+  <a class="toc-item" href="#sec-context"><span class="num">07</span>ContextBuilder：提示词组装工厂</a>
+  <a class="toc-item" href="#sec-loop"><span class="num">08</span>AgentLoop：大脑指挥部（最核心！）</a>
+  <a class="toc-item" href="#sec-tools"><span class="num">09</span>Tools：Agent 的双手</a>
+  <a class="toc-item" href="#sec-memory"><span class="num">10</span>Memory：记忆的浓缩与持久化</a>
+  <a class="toc-item" href="#sec-skills"><span class="num">11</span>Skills：可热插拔的技能包</a>
+  <a class="toc-item" href="#sec-fullflow"><span class="num">12</span>完整流程：源码级逐行追踪</a>
+  <a class="toc-item" href="#sec-dataflow"><span class="num">13</span>数据流完整示意图（飞书/Telegram/CLI）</a>
+</div>
+
+<!-- ============ 01 OVERVIEW ============ -->
+<section id="sec-overview" data-nav="全局鸟瞰">
+  <span class="tag" style="background:rgba(245,158,11,.12);color:var(--amber)">第一章</span>
+  <h2 class="rv">全局鸟瞰：一条消息的完整旅程</h2>
+  <p class="lead rv">在深入每个类之前，先用一张图看看全貌。当你在终端输入一句话，数据会经过哪些"车站"？</p>
+
+  <div class="diagram rv">
+<span class="hl">你在终端输入: "帮我查一下杭州天气"</span>
+        │
+        ▼
+┌──────────────────┐
+│  <span class="c1">CLI 入口</span>          │  commands.py → agent() 函数
+│  加载配置、创建组件  │  Config → Provider → AgentLoop
+└────────┬─────────┘
+         │  通过 MessageBus 发布 InboundMessage
+         ▼
+┌──────────────────┐
+│  <span class="c2">AgentLoop.run()</span>  │  主循环：不断从总线取消息
+│  取到消息 → _dispatch│
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────────────────────────────────────────┐
+│  <span class="hl">_process_message()</span>  ←  这是每条消息的处理入口         │
+│                                                      │
+│  ① SessionManager.get_or_create()  ← 找到/创建会话    │
+│  ② ContextBuilder.build_messages() ← 组装提示词       │
+│     ├─ 系统提示词 = 身份 + 启动文件 + 记忆 + 技能       │
+│     ├─ 历史消息 = 从 Session 取聊天记录                 │
+│     └─ 用户消息 = 运行时上下文 + 你说的话               │
+│  ③ <span class="c4">_run_agent_loop()</span> ← 核心循环开始！               │
+│     ┌─────────────────────────────────────┐          │
+│     │ <span class="c3">Provider.chat()</span> → 问 AI 大脑         │          │
+│     │         │                           │          │
+│     │    AI 返回纯文字？→ 循环结束 ✓       │          │
+│     │    AI 返回工具调用？                  │          │
+│     │         │                           │          │
+│     │    <span class="c1">ToolRegistry.execute()</span> → 执行工具 │          │
+│     │         │                           │          │
+│     │    把工具结果加进对话 → 回到顶部再问   │          │
+│     │    （最多循环 <span class="num">40</span> 次）               │          │
+│     └─────────────────────────────────────┘          │
+│  ④ _save_turn() → 保存这轮对话到 Session               │
+│  ⑤ 打包成 OutboundMessage 发到总线                     │
+└──────────────────────────────────────────────────────┘
+         │
+         ▼
+┌──────────────────┐
+│  <span class="c5">终端显示回复</span>     │  "杭州明天晴天 ☀️ ..."
+└──────────────────┘
+</div>
+
+  <div class="tip rv">
+    <strong>一句话总结：</strong>CLI 入口负责「启动」，MessageBus 负责「传话」，AgentLoop 负责「想+做」，
+    Provider 负责「问 AI」，Tools 负责「干活」，Session 负责「记录」，Memory 负责「浓缩记忆」。
+    接下来我们逐个拆开看。
+  </div>
+</section>
+
+<!-- ============ 02 ENTRY ============ -->
+<section id="sec-entry" data-nav="入口">
+  <span class="tag" style="background:rgba(96,165,250,.12);color:var(--blue)">第二章</span>
+  <h2 class="rv">入口：从 <code>nanobot agent</code> 到 Python 函数</h2>
+  <p class="lead rv">你敲下命令的那一瞬间，发生了什么？</p>
+
+  <div class="tip rv">
+    <strong>比喻：</strong>这就像你按下电视遥控器的开机键——遥控器（终端命令）发出信号，
+    电视（Python 程序）收到后依次接通电源、调好频道、亮起屏幕。
+  </div>
+
+  <div class="timeline rv">
+    <div class="tl-step">
+      <div class="tl-dot" style="background:var(--blue);color:var(--bg)">1</div>
+      <h4 style="color:var(--blue)">Shell 执行 <code>.venv/bin/nanobot</code></h4>
+      <p>这是 <code>pip install -e .</code> 时自动生成的脚本。它只做一件事：</p>
+      <div class="detail">from nanobot.cli.commands import app
+app()   # ← 这个 app 是 Typer 应用，它会解析你输入的子命令</div>
+    </div>
+    <div class="tl-step">
+      <div class="tl-dot" style="background:var(--blue);color:var(--bg)">2</div>
+      <h4 style="color:var(--blue)">Typer 路由到 <code>agent()</code> 函数</h4>
+      <p>Typer（一个命令行框架，帮你把 Python 函数变成终端命令）看到你输入的是 <code>agent</code>，
+      就去执行 <code>commands.py</code> 里被 <code>@app.command()</code> 装饰的 <code>agent()</code> 函数。</p>
+    </div>
+    <div class="tl-step">
+      <div class="tl-dot" style="background:var(--blue);color:var(--bg)">3</div>
+      <h4 style="color:var(--blue)"><code>agent()</code> 函数的 6 步启动</h4>
+      <p>这个函数是整个程序的"总装车间"，它依次做这些事：</p>
+      <div class="detail">① _load_runtime_config()     # 读取 ~/.nanobot/config.json → Config 对象
+② sync_workspace_templates() # 确保工作区里的模板文件是最新的
+③ MessageBus()               # 创建消息传送带
+④ _make_provider(config)     # 根据配置创建 AI 提供商（DeepSeek/OpenAI/…）
+⑤ AgentLoop(bus, provider, ...)  # 创建大脑指挥部，注册所有工具
+⑥ asyncio.run(run_interactive()) # 启动异步事件循环，进入交互模式</div>
+    </div>
+    <div class="tl-step">
+      <div class="tl-dot" style="background:var(--blue);color:var(--bg)">4</div>
+      <h4 style="color:var(--blue)">交互模式的运行结构</h4>
+      <p>进入交互模式后，程序同时跑着两个"工人"：</p>
+      <div class="detail">工人 A: agent_loop.run()     → 不断从总线取消息、处理、发回复
+工人 B: _consume_outbound() → 不断从总线取回复、显示在屏幕上
+
+你输入文字 → 包装成 InboundMessage → 丢进总线
+→ 工人 A 取到 → 处理 → 回复丢进总线
+→ 工人 B 取到 → 显示在终端</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 03 CONFIG ============ -->
+<section id="sec-config" data-nav="Config">
+  <span class="tag" style="background:rgba(163,230,53,.12);color:var(--lime)">第三章</span>
+  <h2 class="rv">Config：配置文件怎么变成代码对象</h2>
+  <p class="lead rv">一个 JSON 文件，是怎么变成程序能理解的"指令"的？</p>
+
+  <div class="tip rv">
+    <strong>比喻：</strong>config.json 就像一张点菜单。你写了"要 DeepSeek、8192 tokens"，
+    Pydantic（服务员）拿到菜单后先核对一遍格式对不对，然后把你的要求翻译成厨房能看懂的工单（Config 对象）。
+  </div>
+
+  <div class="class-card rv" onclick="this.classList.toggle('open')">
+    <div class="hd">
+      <span class="icon">⚙️</span>
+      <h3>Config 类</h3>
+      <span class="file">nanobot/config/schema.py</span>
+      <span class="arrow">▶</span>
+    </div>
+    <div class="body">
+      <p>Config 是整个配置的根。它用 <strong>Pydantic</strong>（一个数据校验库，能自动检查你填的值对不对）定义了所有配置字段。</p>
+      <table class="mtable">
+        <tr><th>字段</th><th>类型</th><th>干嘛的</th></tr>
+        <tr><td>agents</td><td>AgentsConfig</td><td>AI 相关配置（模型名、温度、最大 token 数……）</td></tr>
+        <tr><td>channels</td><td>ChannelsConfig</td><td>聊天渠道配置（Telegram、Discord……）</td></tr>
+        <tr><td>providers</td><td>ProvidersConfig</td><td>各家 AI 提供商的 API Key</td></tr>
+        <tr><td>gateway</td><td>GatewayConfig</td><td>网关配置（端口、心跳间隔）</td></tr>
+        <tr><td>tools</td><td>ToolsConfig</td><td>工具配置（搜索 Key、命令超时、MCP 服务器）</td></tr>
+      </table>
+
+      <p><strong>关键方法 — 自动匹配提供商：</strong></p>
+      <p><code>_match_provider(model)</code> 的逻辑：</p>
+      <div class="detail" style="font-size:.78rem">1. 你手动指定了 provider（如 "deepseek"）？→ 直接用它
+2. 没指定？看 model 名字：
+   - "deepseek/deepseek-chat" → 前缀 "deepseek" 命中注册表 → 用 DeepSeek
+   - "anthropic/claude-..." → 前缀 "anthropic" → 用 Anthropic
+3. 还没匹配上？→ 遍历所有 provider，找第一个填了 API Key 的</div>
+    </div>
+  </div>
+
+  <div class="class-card rv" onclick="this.classList.toggle('open')">
+    <div class="hd">
+      <span class="icon">📦</span>
+      <h3>AgentDefaults 类</h3>
+      <span class="file">nanobot/config/schema.py</span>
+      <span class="arrow">▶</span>
+    </div>
+    <div class="body">
+      <table class="mtable">
+        <tr><th>字段</th><th>默认值</th><th>含义</th></tr>
+        <tr><td>model</td><td>"anthropic/claude-opus-4-5"</td><td>用哪个 AI 模型</td></tr>
+        <tr><td>provider</td><td>"auto"</td><td>用哪家提供商（auto=自动匹配）</td></tr>
+        <tr><td>max_tokens</td><td>8192</td><td>AI 回复的最大长度（token ≈ 0.75 个中文字）</td></tr>
+        <tr><td>temperature</td><td>0.1</td><td>创造力，0=死板精确，1=天马行空</td></tr>
+        <tr><td>max_tool_iterations</td><td>40</td><td>工具循环最多转几圈（防死循环）</td></tr>
+        <tr><td>memory_window</td><td>100</td><td>攒多少轮对话后触发记忆整理</td></tr>
+        <tr><td>reasoning_effort</td><td>null</td><td>思考深度（部分模型支持）</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 04 PROVIDER ============ -->
+<section id="sec-provider" data-nav="Provider">
+  <span class="tag" style="background:rgba(251,113,133,.12);color:var(--rose)">第四章</span>
+  <h2 class="rv">Provider：AI 大脑的"电话线"</h2>
+  <p class="lead rv">Agent 自己不会"想"——它需要打电话给外面的 AI 大脑。Provider 就是这根电话线。</p>
+
+  <div class="class-card rv" onclick="this.classList.toggle('open')">
+    <div class="hd">
+      <span class="icon">📞</span>
+      <h3>LLMProvider（抽象基类）</h3>
+      <span class="file">nanobot/providers/base.py</span>
+      <span class="arrow">▶</span>
+    </div>
+    <div class="body">
+      <p>这是所有提供商的"合同模板"——不管你是 DeepSeek 还是 OpenAI，都必须实现这些方法：</p>
+      <table class="mtable">
+        <tr><th>方法</th><th>做什么</th></tr>
+        <tr><td>chat(messages, tools, ...)</td><td>核心！把对话和工具列表发给 AI，拿回回复。返回 LLMResponse。</td></tr>
+        <tr><td>get_default_model()</td><td>返回默认模型名字</td></tr>
+        <tr><td>_sanitize_empty_content()</td><td>清理空消息（有些 AI 不接受空内容）</td></tr>
+      </table>
+      <p><strong>LLMResponse</strong>——AI 的回复被包装成这个对象：</p>
+      <table class="mtable">
+        <tr><th>字段</th><th>类型</th><th>含义</th></tr>
+        <tr><td>content</td><td>str | None</td><td>AI 说的话（纯文字回复）</td></tr>
+        <tr><td>tool_calls</td><td>list[ToolCallRequest]</td><td>AI 想调用的工具列表</td></tr>
+        <tr><td>finish_reason</td><td>str</td><td>"stop"=说完了，"tool_calls"=需要工具</td></tr>
+        <tr><td>usage</td><td>dict</td><td>消耗了多少 token（用于计费）</td></tr>
+        <tr><td>has_tool_calls</td><td>bool（属性）</td><td>有没有工具调用？</td></tr>
+      </table>
+      <p><strong>ToolCallRequest</strong>——AI 想调用工具时，每个请求长这样：</p>
+      <table class="mtable">
+        <tr><th>字段</th><th>含义</th></tr>
+        <tr><td>id</td><td>唯一标识（AI 生成的）</td></tr>
+        <tr><td>name</td><td>工具名，如 "web_search"</td></tr>
+        <tr><td>arguments</td><td>参数，如 {"query": "杭州天气"}</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="class-card rv" onclick="this.classList.toggle('open')">
+    <div class="hd">
+      <span class="icon">🔌</span>
+      <h3>LiteLLMProvider（最常用的实现）</h3>
+      <span class="file">nanobot/providers/litellm_provider.py</span>
+      <span class="arrow">▶</span>
+    </div>
+    <div class="body">
+      <p>绝大多数提供商都走这个实现。它用 <strong>LiteLLM</strong>（一个万能翻译器库）来统一不同 AI 的接口。</p>
+      <p><code>chat()</code> 方法的内部流程：</p>
+      <div class="detail" style="font-size:.78rem">① _resolve_model()  → 加上提供商前缀（如 "deepseek/deepseek-chat"）
+② 构建请求参数    → model, messages, max_tokens, temperature, tools...
+③ 设置 API Key    → 通过环境变量传给 LiteLLM
+④ acompletion()   → 异步调用 AI（这是真正发 HTTP 请求的地方！）
+⑤ _parse_response() → 把 AI 的原始回复解析成 LLMResponse
+   - 提取 content（文字回复）
+   - 提取 tool_calls（工具调用请求）
+   - 用 json_repair 修复可能畸形的 JSON 参数</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 05 BUS ============ -->
+<section id="sec-bus" data-nav="MessageBus">
+  <span class="tag" style="background:rgba(167,139,250,.12);color:var(--purple)">第五章</span>
+  <h2 class="rv">MessageBus：消息传送带</h2>
+  <p class="lead rv">最简单但最重要的组件——它让所有部件不用直接认识对方，通过传送带间接合作。</p>
+
+  <div class="tip rv">
+    <strong>比喻：</strong>就像寿司店的传送带。厨师（渠道/Agent）把食物放上去，
+    食客（Agent/终端）从传送带上取。厨师不需要知道谁在吃，食客也不用跑进厨房。
+  </div>
+
+  <div class="class-card rv" onclick="this.classList.toggle('open')">
+    <div class="hd">
+      <span class="icon">🚌</span>
+      <h3>MessageBus</h3>
+      <span class="file">nanobot/bus/queue.py</span>
+      <span class="arrow">▶</span>
+    </div>
+    <div class="body">
+      <p>内部就两条队列（<code>asyncio.Queue</code>），极其简单：</p>
+      <table class="mtable">
+        <tr><th>队列</th><th>方向</th><th>谁放入</th><th>谁取出</th></tr>
+        <tr><td>inbound</td><td>进站</td><td>渠道 / CLI</td><td>AgentLoop</td></tr>
+        <tr><td>outbound</td><td>出站</td><td>AgentLoop</td><td>渠道管理器 / CLI</td></tr>
+      </table>
+      <table class="mtable">
+        <tr><th>方法</th><th>做什么</th></tr>
+        <tr><td>publish_inbound(msg)</td><td>把用户消息放到进站传送带</td></tr>
+        <tr><td>consume_inbound()</td><td>从进站传送带取一条消息（等待直到有）</td></tr>
+        <tr><td>publish_outbound(msg)</td><td>把回复放到出站传送带</td></tr>
+        <tr><td>consume_outbound()</td><td>从出站传送带取一条回复</td></tr>
+      </table>
+      <p><strong>InboundMessage</strong>（进站信封）字段：<code>channel</code>（哪个渠道）、<code>sender_id</code>（谁发的）、<code>chat_id</code>（发到哪个聊天）、<code>content</code>（说了啥）、<code>media</code>（附件）、<code>metadata</code>（额外信息）</p>
+      <p><strong>OutboundMessage</strong>（出站信封）字段：<code>channel</code>、<code>chat_id</code>、<code>content</code>、<code>media</code>、<code>metadata</code></p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 06 SESSION ============ -->
+<section id="sec-session" data-nav="Session">
+  <span class="tag" style="background:rgba(34,211,238,.12);color:var(--cyan)">第六章</span>
+  <h2 class="rv">Session：聊天记录管理员</h2>
+  <p class="lead rv">Agent 怎么知道"我们刚才聊到哪了"？靠 Session。</p>
+
+  <div class="tip rv">
+    <strong>比喻：</strong>Session 就像一个笔记本。每次对话结束，秘书都把这轮内容记在笔记本上。
+    下次对话时，先翻一下笔记本："哦上次说到 Python 项目了"。
+  </div>
+
+  <div class="class-card rv" onclick="this.classList.toggle('open')">
+    <div class="hd">
+      <span class="icon">📒</span>
+      <h3>Session（数据类）</h3>
+      <span class="file">nanobot/session/manager.py</span>
+      <span class="arrow">▶</span>
+    </div>
+    <div class="body">
+      <table class="mtable">
+        <tr><th>字段</th><th>含义</th></tr>
+        <tr><td>key</td><td>会话标识，格式 "channel:chat_id"，如 "telegram:12345"</td></tr>
+        <tr><td>messages</td><td>所有消息列表（只追加，不修改历史）</td></tr>
+        <tr><td>last_consolidated</td><td>已经被整理进记忆的消息数量（这个数字之前的不用再看了）</td></tr>
+      </table>
+      <p><strong>关键方法 <code>get_history()</code></strong>：只返回 <code>last_consolidated</code> 之后的消息（还没被整理成记忆的部分），
+      并且会对齐到用户消息开头——确保历史记录不会从 AI 回复的半截开始。</p>
+    </div>
+  </div>
+
+  <div class="class-card rv" onclick="this.classList.toggle('open')">
+    <div class="hd">
+      <span class="icon">🗄️</span>
+      <h3>SessionManager</h3>
+      <span class="file">nanobot/session/manager.py</span>
+      <span class="arrow">▶</span>
+    </div>
+    <div class="body">
+      <table class="mtable">
+        <tr><th>方法</th><th>做什么</th></tr>
+        <tr><td>get_or_create(key)</td><td>有就取（先查缓存、再查文件），没有就新建</td></tr>
+        <tr><td>save(session)</td><td>写入磁盘，格式是 JSONL（每行一个 JSON）</td></tr>
+        <tr><td>invalidate(key)</td><td>清除缓存（下次取会重新从文件加载）</td></tr>
+      </table>
+      <p><strong>存储格式</strong>：每个会话存成 <code>workspace/sessions/{key}.jsonl</code> 文件。第一行是元数据（创建时间等），后面每行一条消息。JSONL 的好处是追加写入很快，不用每次重写整个文件。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 07 CONTEXT ============ -->
+<section id="sec-context" data-nav="Context">
+  <span class="tag" style="background:rgba(245,158,11,.12);color:var(--amber)">第七章</span>
+  <h2 class="rv">ContextBuilder：提示词组装工厂</h2>
+  <p class="lead rv">发给 AI 的不是你那一句话——而是一个精心拼装的"大文档"。ContextBuilder 就是组装这个文档的工厂。</p>
+
+  <div class="tip rv">
+    <strong>比喻：</strong>你让秘书给新同事交代任务，不能只说"帮我查天气"。你得说：
+    "你是我的助理（身份），你擅长搜索和写代码（技能），之前我们讨论过 X（记忆），
+    我上次说了 Y 和 Z（历史），现在请帮我查天气（当前请求）。"
+    ContextBuilder 就是把这些信息按顺序拼起来。
+  </div>
+
+  <div class="class-card open rv" onclick="this.classList.toggle('open')">
+    <div class="hd">
+      <span class="icon">🏭</span>
+      <h3>ContextBuilder</h3>
+      <span class="file">nanobot/agent/context.py</span>
+      <span class="arrow">▶</span>
+    </div>
+    <div class="body">
+      <p><strong>系统提示词的拼装顺序（<code>build_system_prompt()</code>）：</strong></p>
+      <div class="detail" style="font-size:.78rem">第 1 块 ─ <span class="hl">身份 (_get_identity)</span>
+         "你是 nanobot，一个个人 AI 助手"
+         + 运行环境（macOS/Python 3.12）
+         + 工作区路径
+         + 使用准则
+
+第 2 块 ─ <span class="hl">启动文件 (_load_bootstrap_files)</span>
+         AGENTS.md   → 自定义 Agent 行为规则
+         SOUL.md     → 人格设定
+         USER.md     → 用户偏好
+         TOOLS.md    → 工具使用指南
+         IDENTITY.md → 额外身份信息
+         （这些文件都在 workspace 下，你可以随时编辑来改变 Agent 的行为！）
+
+第 3 块 ─ <span class="hl">长期记忆 (memory.get_memory_context)</span>
+         "## Long-term Memory\n用户是 Python 开发者，偏好中文回复……"
+
+第 4 块 ─ <span class="hl">始终加载的技能 (always skills)</span>
+         一些标记了 always=true 的技能说明
+
+第 5 块 ─ <span class="hl">技能目录 (skills summary)</span>
+         所有可用技能的 XML 摘要，AI 需要时再深入加载</div>
+
+      <p><strong>消息列表的组装（<code>build_messages()</code>）：</strong></p>
+      <div class="detail" style="font-size:.78rem">返回: [系统提示词, ...聊天历史, 用户消息]
+
+用户消息 = 运行时上下文 + 你说的话
+运行时上下文包括：当前时间、时区、渠道名、聊天 ID
+（这样 AI 知道"现在是几点""你是从 Telegram 来的"）
+
+如果有图片附件：
+  → 读取图片 → Base64 编码 → 拼成多模态消息
+  → [{type: "image_url", ...}, {type: "text", text: "你说的话"}]</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 08 AGENT LOOP ============ -->
+<section id="sec-loop" data-nav="AgentLoop">
+  <span class="tag" style="background:rgba(245,158,11,.15);color:var(--amber)">第八章 · 核心</span>
+  <h2 class="rv">AgentLoop：大脑指挥部</h2>
+  <p class="lead rv">这是整个项目最核心的类。搞懂它，你就搞懂了 nanobot 的 80%。</p>
+
+  <div class="class-card open rv" onclick="this.classList.toggle('open')">
+    <div class="hd">
+      <span class="icon">🧠</span>
+      <h3>AgentLoop — 构造函数</h3>
+      <span class="file">nanobot/agent/loop.py</span>
+      <span class="arrow">▶</span>
+    </div>
+    <div class="body">
+      <p>创建时需要传入的"零件"：</p>
+      <table class="mtable">
+        <tr><th>参数</th><th>是什么</th></tr>
+        <tr><td>bus</td><td>消息传送带</td></tr>
+        <tr><td>provider</td><td>AI 电话线</td></tr>
+        <tr><td>workspace</td><td>工作目录路径</td></tr>
+        <tr><td>model</td><td>模型名</td></tr>
+        <tr><td>max_iterations</td><td>工具循环上限（默认 40）</td></tr>
+        <tr><td>session_manager</td><td>会话管理器</td></tr>
+        <tr><td>cron_service</td><td>定时任务引擎</td></tr>
+        <tr><td>mcp_servers</td><td>外部 MCP 工具配置</td></tr>
+      </table>
+      <p>构造函数还会立刻调用 <code>_register_default_tools()</code> 注册所有内置工具。</p>
+    </div>
+  </div>
+
+  <div class="class-card open rv" onclick="this.classList.toggle('open')">
+    <div class="hd">
+      <span class="icon">🔄</span>
+      <h3>_run_agent_loop() — 核心中的核心</h3>
+      <span class="file">nanobot/agent/loop.py</span>
+      <span class="arrow">▶</span>
+    </div>
+    <div class="body">
+      <p>这个方法实现了经典的 <strong>ReAct 循环</strong>（Reason + Act）：想→做→看→再想。</p>
+      <div class="detail" style="font-size:.78rem"><span class="hl">输入：</span>initial_messages（系统提示 + 历史 + 用户消息）
+<span class="hl">输出：</span>(最终回复, 使用的工具列表, 完整消息列表)
+
+iteration = 0
+while iteration < max_iterations(40):
+    iteration += 1
+
+    # ====== 问 AI 大脑 ======
+    response = provider.chat(messages, tools, model, ...)
+
+    if response.has_tool_calls:
+        # AI 说："我要用工具！"
+        # 1) 把 AI 的回复（包含工具调用请求）加进消息列表
+        context.add_assistant_message(messages, content, tool_calls, ...)
+
+        # 2) 逐个执行工具
+        for tool_call in response.tool_calls:
+            result = tools.execute(tool_call.name, tool_call.arguments)
+            # 3) 把工具执行结果加进消息列表
+            context.add_tool_result(messages, tool_call.id, tool_call.name, result)
+
+        # 4) 带着新信息回到循环顶部，再问 AI
+        continue
+
+    else:
+        # AI 返回了纯文字 → 循环结束！
+        final_content = response.content
+        break
+
+return (final_content, tools_used, messages)</div>
+      <p>看到了吗？<strong>每次循环只做两件事：问 AI → 执行工具。</strong>
+      AI 不需要工具了就结束。极其简洁——这也是为什么 nanobot 只有 4000 行代码。</p>
+    </div>
+  </div>
+
+  <div class="class-card rv" onclick="this.classList.toggle('open')">
+    <div class="hd">
+      <span class="icon">📬</span>
+      <h3>_process_message() — 每条消息的处理入口</h3>
+      <span class="file">nanobot/agent/loop.py</span>
+      <span class="arrow">▶</span>
+    </div>
+    <div class="body">
+      <p>这是 <code>_run_agent_loop()</code> 的"上游管理者"——它负责准备工作和善后工作：</p>
+      <div class="detail" style="font-size:.78rem">① 检查是不是斜杠命令（/new 清空会话，/help 显示帮助）
+② 获取会话 → session_manager.get_or_create(key)
+③ 检查是否该整理记忆了（未整理消息 ≥ memory_window？）
+④ 设置工具上下文（告诉 message 工具"当前在哪个渠道/聊天"）
+⑤ 获取聊天历史 → session.get_history()
+⑥ 组装消息列表 → context.build_messages(history, user_msg, ...)
+⑦ <span class="hl">调用 _run_agent_loop(messages)</span> ← 核心循环
+⑧ 保存这轮对话 → _save_turn(session, messages)
+⑨ 打包回复 → OutboundMessage 发到总线</div>
+    </div>
+  </div>
+
+  <div class="class-card rv" onclick="this.classList.toggle('open')">
+    <div class="hd">
+      <span class="icon">🏃</span>
+      <h3>run() — 主循环</h3>
+      <span class="file">nanobot/agent/loop.py</span>
+      <span class="arrow">▶</span>
+    </div>
+    <div class="body">
+      <p>一个无限循环，不断从总线取消息：</p>
+      <div class="detail" style="font-size:.78rem">while self._running:
+    msg = bus.consume_inbound(timeout=1s)  # 等 1 秒
+    if msg is None: continue               # 没消息？继续等
+    if msg.content == "/stop":             # 停止命令
+        _handle_stop()
+    else:
+        asyncio.create_task(_dispatch(msg)) # 异步处理，不阻塞主循环</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 09 TOOLS ============ -->
+<section id="sec-tools" data-nav="Tools">
+  <span class="tag" style="background:rgba(34,211,238,.12);color:var(--cyan)">第九章</span>
+  <h2 class="rv">Tools：Agent 的双手</h2>
+  <p class="lead rv">AI 大脑说"帮我搜一下"，具体怎么搜？靠工具。每个工具就是一个 Python 类。</p>
+
+  <div class="class-card rv" onclick="this.classList.toggle('open')">
+    <div class="hd">
+      <span class="icon">🔨</span>
+      <h3>Tool（抽象基类）</h3>
+      <span class="file">nanobot/agent/tools/base.py</span>
+      <span class="arrow">▶</span>
+    </div>
+    <div class="body">
+      <p>所有工具都必须继承这个类并实现三个属性和一个方法：</p>
+      <table class="mtable">
+        <tr><th>必须实现</th><th>作用</th></tr>
+        <tr><td>name (属性)</td><td>工具名字，如 "web_search"</td></tr>
+        <tr><td>description (属性)</td><td>功能描述（AI 靠这个决定什么时候用它）</td></tr>
+        <tr><td>parameters (属性)</td><td>参数定义（JSON Schema 格式，告诉 AI 需要传什么参数）</td></tr>
+        <tr><td>execute(**kwargs)</td><td>真正干活的方法，返回一个字符串结果</td></tr>
+      </table>
+      <p><code>to_schema()</code> 方法会把上面的信息转换成 OpenAI 的 <strong>Function Calling</strong> 格式——
+      这是 AI 大脑通用的"工具说明书"标准。</p>
+    </div>
+  </div>
+
+  <div class="class-card rv" onclick="this.classList.toggle('open')">
+    <div class="hd">
+      <span class="icon">📋</span>
+      <h3>ToolRegistry（工具注册表）</h3>
+      <span class="file">nanobot/agent/tools/registry.py</span>
+      <span class="arrow">▶</span>
+    </div>
+    <div class="body">
+      <p>一个字典，存着所有已注册的工具。</p>
+      <table class="mtable">
+        <tr><th>方法</th><th>做什么</th></tr>
+        <tr><td>register(tool)</td><td>注册一个新工具</td></tr>
+        <tr><td>get_definitions()</td><td>返回所有工具的 schema（发给 AI 看）</td></tr>
+        <tr><td>execute(name, params)</td><td>① 类型转换 → ② 参数校验 → ③ 执行工具 → ④ 出错时加提示</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <h3 class="rv" style="color:var(--cyan);margin-top:2rem;margin-bottom:1rem">每个内置工具一览</h3>
+
+  <div class="mini-grid rv">
+    <div class="mini-card">
+      <h4 style="color:var(--cyan)">📖 ReadFileTool</h4>
+      <p>读文件内容。限 128KB，超了自动截断。路径会被限制在工作区内（安全）。</p>
+    </div>
+    <div class="mini-card">
+      <h4 style="color:var(--cyan)">✏️ WriteFileTool</h4>
+      <p>创建/覆盖文件。自动创建父目录。UTF-8 编码。</p>
+    </div>
+    <div class="mini-card">
+      <h4 style="color:var(--cyan)">🔧 EditFileTool</h4>
+      <p>精确查找替换。找不到时用 difflib 给出"你是不是想改这里？"的建议。</p>
+    </div>
+    <div class="mini-card">
+      <h4 style="color:var(--cyan)">📂 ListDirTool</h4>
+      <p>列出文件夹内容。📁 表示目录，📄 表示文件。</p>
+    </div>
+    <div class="mini-card">
+      <h4 style="color:var(--cyan)">💻 ExecTool</h4>
+      <p>执行终端命令。有黑名单过滤（禁止 rm -rf、format 等危险操作）。超时 60 秒自动杀掉。输出截断到 1 万字符。</p>
+    </div>
+    <div class="mini-card">
+      <h4 style="color:var(--cyan)">🌐 WebSearchTool</h4>
+      <p>用 Brave Search API 搜索互联网。返回标题、URL、摘要。</p>
+    </div>
+    <div class="mini-card">
+      <h4 style="color:var(--cyan)">📄 WebFetchTool</h4>
+      <p>抓取网页内容。用 Readability 算法提取正文（过滤广告导航等噪音）。</p>
+    </div>
+    <div class="mini-card">
+      <h4 style="color:var(--cyan)">💬 MessageTool</h4>
+      <p>主动发消息（不是回复）。定时任务完成后就靠它通知你。</p>
+    </div>
+    <div class="mini-card">
+      <h4 style="color:var(--cyan)">🐣 SpawnTool</h4>
+      <p>派出子 Agent 做后台任务。主 Agent 可以继续做别的事。</p>
+    </div>
+    <div class="mini-card">
+      <h4 style="color:var(--cyan)">⏰ CronTool</h4>
+      <p>管理定时任务：创建、列出、删除。支持一次性、间隔重复、cron 表达式。</p>
+    </div>
+    <div class="mini-card">
+      <h4 style="color:var(--cyan)">🔌 MCPToolWrapper</h4>
+      <p>MCP 外部工具的包装器。把外部工具服务器的能力包装成内置工具同样的接口。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 10 MEMORY ============ -->
+<section id="sec-memory" data-nav="Memory">
+  <span class="tag" style="background:rgba(163,230,53,.12);color:var(--lime)">第十章</span>
+  <h2 class="rv">Memory：记忆的浓缩与持久化</h2>
+  <p class="lead rv">聊了几百轮后，会话记录会越来越长。Memory 系统负责把冗长的对话"蒸馏"成精华。</p>
+
+  <div class="class-card rv" onclick="this.classList.toggle('open')">
+    <div class="hd">
+      <span class="icon">🧠</span>
+      <h3>MemoryStore</h3>
+      <span class="file">nanobot/agent/memory.py</span>
+      <span class="arrow">▶</span>
+    </div>
+    <div class="body">
+      <p>管理两个文件：</p>
+      <table class="mtable">
+        <tr><th>文件</th><th>比喻</th><th>内容</th></tr>
+        <tr><td>MEMORY.md</td><td>身份证/备忘录</td><td>长期事实："用户是 Python 开发者，偏好中文"——随时被全量覆盖更新</td></tr>
+        <tr><td>HISTORY.md</td><td>日记本</td><td>时间线记录："[2026-03-08 17:00] 讨论了项目架构"——只追加不修改</td></tr>
+      </table>
+
+      <p><strong><code>consolidate()</code> 记忆整理流程：</strong></p>
+      <div class="detail" style="font-size:.78rem">触发条件：未整理消息数 ≥ memory_window(100)，或用户输入 /new
+
+① 读取当前 MEMORY.md 内容
+② 把未整理的对话格式化成文本：
+   "[17:00] user: 帮我查天气"
+   "[17:01] assistant [tools: web_search]: 杭州明天晴..."
+③ 构造一个特殊提示词，告诉 AI：
+   "你是记忆整理助手，请调用 save_memory 工具"
+④ 给 AI 一个 save_memory 工具（只有两个参数）：
+   - history_entry: 一段 2-5 句话的摘要，用于追加到 HISTORY.md
+   - memory_update: 更新后的完整长期记忆，用于覆盖 MEMORY.md
+⑤ AI 调用 save_memory → 写入文件
+⑥ 更新 session.last_consolidated（标记哪些消息已整理过了）</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 11 SKILLS ============ -->
+<section id="sec-skills" data-nav="Skills">
+  <span class="tag" style="background:rgba(251,113,133,.12);color:var(--rose)">第十一章</span>
+  <h2 class="rv">Skills：可热插拔的技能包</h2>
+  <p class="lead rv">技能不是硬编码在程序里的——它们是独立的 Markdown 文件，随时可以增删改。</p>
+
+  <div class="class-card rv" onclick="this.classList.toggle('open')">
+    <div class="hd">
+      <span class="icon">🎯</span>
+      <h3>SkillsLoader</h3>
+      <span class="file">nanobot/agent/skills.py</span>
+      <span class="arrow">▶</span>
+    </div>
+    <div class="body">
+      <p><strong>技能从哪来？两个来源（工作区优先）：</strong></p>
+      <div class="detail" style="font-size:.78rem">来源 1 (优先): workspace/skills/{name}/SKILL.md  ← 你自己写的
+来源 2 (兜底): nanobot/skills/{name}/SKILL.md     ← 内置的
+
+同名时工作区版本覆盖内置版本（方便你自定义）</div>
+
+      <p><strong>技能怎么被加载进对话？</strong>渐进式加载：</p>
+      <div class="detail" style="font-size:.78rem">① 启动时：build_skills_summary() 生成一份 XML 摘要：
+   &lt;skills&gt;
+     &lt;skill name="weather" description="查天气" available="true"/&gt;
+     &lt;skill name="github" description="操作 GitHub" available="true"/&gt;
+   &lt;/skills&gt;
+
+② 这份摘要放进系统提示词 → AI 知道有哪些技能可用
+
+③ AI 决定"我需要 weather 技能" → 通过技能加载机制
+   → load_skill("weather") → 读取完整 SKILL.md 内容
+   → 注入到下一轮的系统提示词中
+
+这样做的好处：不用每次都加载所有技能（太长会浪费 token），
+只在需要时按需加载。</div>
+
+      <p><strong>always=true 技能：</strong>在 SKILL.md 的 YAML 头部标记 <code>always: true</code>，
+      该技能会在每次对话时都自动加载，不用等 AI 决定。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 12 FULL FLOW ============ -->
+<section id="sec-fullflow" data-nav="完整追踪">
+  <span class="tag" style="background:rgba(245,158,11,.15);color:var(--amber)">第十二章 · 终章</span>
+  <h2 class="rv">完整流程：源码级逐行追踪</h2>
+  <p class="lead rv">现在把所有零件串起来。你在终端输入"帮我查一下杭州天气"，代码到底怎么跑的？每一步都标注了对应的文件和方法。</p>
+
+  <div class="timeline rv">
+
+    <div class="tl-step">
+      <div class="tl-dot" style="background:var(--blue);color:var(--bg)">①</div>
+      <h4 style="color:var(--blue)">终端输入 → CLI 入口</h4>
+      <p><code>commands.py</code> → <code>agent()</code> → <code>run_interactive()</code></p>
+      <div class="detail">你输入的文字被 prompt_toolkit 读取
+→ 包装成 InboundMessage(channel="cli", sender_id="user",
+     chat_id="direct", content="帮我查一下杭州天气")
+→ bus.publish_inbound(msg)  # 丢进传送带</div>
+    </div>
+
+    <div class="tl-step">
+      <div class="tl-dot" style="background:var(--purple);color:var(--bg)">②</div>
+      <h4 style="color:var(--purple)">AgentLoop.run() 取到消息</h4>
+      <p><code>loop.py</code> → <code>run()</code> → <code>_dispatch(msg)</code></p>
+      <div class="detail">主循环 consume_inbound() 取到了这条消息
+→ 创建异步任务 _dispatch(msg)
+→ 获取 _processing_lock（同一时间只处理一条消息）
+→ 调用 _process_message(msg)</div>
+    </div>
+
+    <div class="tl-step">
+      <div class="tl-dot" style="background:var(--amber);color:var(--bg)">③</div>
+      <h4 style="color:var(--amber)">_process_message() 处理</h4>
+      <p><code>loop.py</code> → <code>_process_message()</code></p>
+      <div class="detail">→ session = session_manager.get_or_create("cli:direct")
+   # 从文件加载或创建新会话
+
+→ 检查未整理消息数 < 100？不用整理记忆，继续
+
+→ _set_tool_context("cli", "direct")
+   # 告诉 message 工具和 cron 工具当前在哪个渠道
+
+→ history = session.get_history()
+   # 取出上次整理记忆后的所有消息
+
+→ messages = context.build_messages(
+     history=history,
+     current_message="帮我查一下杭州天气",
+     channel="cli", chat_id="direct"
+   )</div>
+    </div>
+
+    <div class="tl-step">
+      <div class="tl-dot" style="background:var(--emerald);color:var(--bg)">④</div>
+      <h4 style="color:var(--emerald)">ContextBuilder 组装消息</h4>
+      <p><code>context.py</code> → <code>build_messages()</code> → <code>build_system_prompt()</code></p>
+      <div class="detail">系统提示词 = [
+  "你是 nanobot，一个个人 AI 助手...",     # 身份
+  "当前系统: macOS arm64, Python 3.12...", # 环境
+  "--- AGENTS.md 内容 ---",               # 启动文件
+  "--- SOUL.md 内容 ---",
+  "## Long-term Memory\n用户偏好中文...",   # 长期记忆
+  "&lt;skills&gt;...&lt;/skills&gt;",               # 技能摘要
+].join("\n\n---\n\n")
+
+用户消息 = "[Runtime Context] time=2026-03-08T17:30+08:00, channel=cli\n\n帮我查一下杭州天气"
+
+最终: [
+  {role: "system",    content: 系统提示词},
+  ...历史消息...,
+  {role: "user",      content: 用户消息}
+]</div>
+    </div>
+
+    <div class="tl-step">
+      <div class="tl-dot" style="background:var(--rose);color:var(--bg)">⑤</div>
+      <h4 style="color:var(--rose)">_run_agent_loop() 第 1 轮</h4>
+      <p><code>loop.py</code> → <code>_run_agent_loop()</code> → <code>provider.chat()</code></p>
+      <div class="detail">iteration = 1
+
+→ provider.chat(messages, tools=[
+    {name:"read_file", ...},
+    {name:"write_file", ...},
+    {name:"exec", ...},
+    {name:"web_search", ...},
+    {name:"web_fetch", ...},
+    {name:"message", ...},
+    ...
+  ])
+
+→ LiteLLM 发 HTTP 请求到 DeepSeek API
+→ DeepSeek 返回:
+   response.has_tool_calls = true
+   response.tool_calls = [
+     ToolCallRequest(
+       id="call_abc123",
+       name="web_search",
+       arguments={"query": "杭州 明天 天气"}
+     )
+   ]</div>
+    </div>
+
+    <div class="tl-step">
+      <div class="tl-dot" style="background:var(--cyan);color:var(--bg)">⑥</div>
+      <h4 style="color:var(--cyan)">执行工具：web_search</h4>
+      <p><code>tools/registry.py</code> → <code>execute()</code> → <code>tools/web.py</code> → <code>WebSearchTool.execute()</code></p>
+      <div class="detail">→ context.add_assistant_message(messages, tool_calls=...)
+   # 把 AI 的工具调用请求加进消息列表
+
+→ tools.execute("web_search", {"query": "杭州 明天 天气"})
+   → 类型转换: cast_params()
+   → 参数校验: validate_params()
+   → WebSearchTool.execute(query="杭州 明天 天气")
+     → HTTP GET api.search.brave.com/res/v1/web/search?q=杭州+明天+天气
+     → 返回: "1. 杭州明天晴 25°C..."
+
+→ context.add_tool_result(messages, "call_abc123", "web_search", "1. 杭州明天晴 25°C...")
+   # 把工具结果加进消息列表</div>
+    </div>
+
+    <div class="tl-step">
+      <div class="tl-dot" style="background:var(--rose);color:var(--bg)">⑦</div>
+      <h4 style="color:var(--rose)">_run_agent_loop() 第 2 轮</h4>
+      <p><code>loop.py</code> → <code>provider.chat()</code>（带着工具结果再问一次）</p>
+      <div class="detail">iteration = 2
+
+→ provider.chat(messages_with_tool_result, tools=...)
+→ DeepSeek 看到搜索结果，觉得够了
+→ response.has_tool_calls = false
+→ response.content = "杭州明天是晴天☀️，气温15~25°C，微风，很适合出门！"
+
+→ 循环结束！return ("杭州明天是晴天...", ["web_search"], messages)</div>
+    </div>
+
+    <div class="tl-step">
+      <div class="tl-dot" style="background:var(--lime);color:var(--bg)">⑧</div>
+      <h4 style="color:var(--lime)">保存 & 回复</h4>
+      <p><code>loop.py</code> → <code>_save_turn()</code> → <code>bus.publish_outbound()</code></p>
+      <div class="detail">→ _save_turn(session, messages)
+   # 把这轮新增的消息追加到 Session
+   # session_manager.save(session) → 写入 sessions/cli:direct.jsonl
+
+→ OutboundMessage(channel="cli", chat_id="direct",
+     content="杭州明天是晴天☀️...")
+→ bus.publish_outbound(msg)  # 丢进出站传送带
+
+→ CLI 的 _consume_outbound() 取到回复
+→ rich.Markdown 渲染后显示在终端
+
+🎉 你看到了回复！</div>
+    </div>
+
+  </div>
+
+  <div class="tip rv">
+    <strong>恭喜你走完了全程！</strong>从你敲下回车到看到回复，代码经过了：
+    <code>commands.py</code> → <code>MessageBus</code> → <code>AgentLoop.run()</code> → <code>_process_message()</code>
+    → <code>ContextBuilder</code> → <code>_run_agent_loop()</code> → <code>Provider.chat()</code>
+    → <code>ToolRegistry.execute()</code> → <code>Provider.chat()</code>（第 2 轮）→ <code>Session.save()</code> → <code>MessageBus</code> → 终端显示。
+    <br><br>
+    每个文件各司其职，互不耦合——这就是为什么 4000 行代码就能做一个完整的 AI Agent。
+  </div>
+</section>
+
+<!-- ============ 13 DATA FLOW MAP ============ -->
+<section id="sec-dataflow" data-nav="数据流图">
+  <span class="tag" style="background:rgba(34,211,238,.12);color:var(--cyan)">第十三章</span>
+  <h2 class="rv">数据流完整示意图（你截图这个版本）</h2>
+  <p class="lead rv">这一段是按你给的结构整理成“可直接读源码对照”的流程图版本，强调每一步对应的关键函数。</p>
+
+  <div class="codeblock rv">
+    <div class="bar">
+      <span class="dots">
+        <span class="dot" style="background:#fb7185"></span>
+        <span class="dot" style="background:#fbbf24"></span>
+        <span class="dot" style="background:#34d399"></span>
+      </span>
+      <span>十三、数据流完整示意图</span>
+    </div>
+    <pre>用户消息 (Telegram/Discord/飞书/CLI)
+    ↓
+[Channel.start() 监听] → 权限校验(allowFrom) → 构造 InboundMessage
+    ↓
+[MessageBus.publish_inbound()] → asyncio.Queue
+    ↓
+[AgentLoop.run()] 从队列取消息
+    ↓
+[ContextBuilder.build_messages()]
+  ├── System Prompt = Identity + Bootstrap Files
+  │                    + MEMORY.md         ← 长期记忆注入
+  │                    + Always Skills      ← 常驻技能注入
+  │                    + Skills Summary     ← 技能目录
+  ├── History = session.get_history(max=100) ← 短期记忆
+  └── User Message = RuntimeContext + 用户文本 + 图片(base64)
+    ↓
+[_run_agent_loop()] ← 最多 <span class="hl">40</span> 轮 ReAct 循环
+  ├── provider.chat() → LLM 推理
+  ├── 有工具调用? → tools.execute() → 结果追回消息列表 → 继续循环
+  └── 无工具调用? → final_content → 退出循环
+    ↓
+[_save_turn()] 保存到 session.messages（超限触发 memory consolidation）
+    ↓
+[MessageBus.publish_outbound()] → asyncio.Queue
+    ↓
+[ChannelManager._dispatch_outbound()] → channel.send()
+    ↓
+用户收到回复</pre>
+  </div>
+
+  <div class="tip rv">
+    <strong>和源码的对应关系：</strong>
+    这一图可以直接对照 <code>commands.py</code>（入口）、<code>loop.py</code>（主循环）、
+    <code>context.py</code>（提示词组装）、<code>tools/registry.py</code>（工具执行）、
+    <code>session.py</code>/<code>memory.py</code>（记忆与持久化）。
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer class="footer">
+  <p>🐈 nanobot 源码深度解析 — 希望这篇图解帮你从小白变成行家</p>
+  <p style="margin-top:.5rem"><a href="https://github.com/HKUDS/nanobot" target="_blank">GitHub</a> · 核心代码仅 ~4000 行 · MIT License</p>
+</footer>
+
+<script>
+// reveal on scroll
+const obs = new IntersectionObserver(es => es.forEach(e => { if(e.isIntersecting) e.target.classList.add('vis') }), {threshold:.08});
+document.querySelectorAll('.rv').forEach(el => obs.observe(el));
+
+// side nav
+const secs = document.querySelectorAll('[data-nav]');
+const nav = document.getElementById('sideNav');
+secs.forEach(s => {
+  const d = document.createElement('button');
+  d.className = 'side-dot';
+  d.dataset.id = s.id;
+  d.innerHTML = `<span class="label">${s.dataset.nav}</span>`;
+  d.onclick = () => s.scrollIntoView({behavior:'smooth'});
+  nav.appendChild(d);
+});
+const navObs = new IntersectionObserver(es => es.forEach(e => {
+  if(e.isIntersecting) document.querySelectorAll('.side-dot').forEach(d => d.classList.toggle('active', d.dataset.id === e.target.id));
+}), {threshold:.25});
+secs.forEach(s => navObs.observe(s));
+</script>
+</body>
+</html>
