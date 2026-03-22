@@ -9,11 +9,11 @@
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 :root{
-  --bg:#09090b;--bg2:#18181b;--bg3:#27272a;--bg4:#3f3f46;
-  --amber:#f59e0b;--amber2:#fbbf24;--amber3:#fde68a;
-  --rose:#fb7185;--cyan:#22d3ee;--blue:#60a5fa;--emerald:#34d399;
-  --purple:#a78bfa;--lime:#a3e635;--orange:#fb923c;--pink:#f472b6;
-  --text:#fafafa;--text2:#d4d4d8;--text3:#a1a1aa;
+  --bg:#f0f2f5;--bg2:#e4e7eb;--bg3:#d1d6dc;--bg4:#b8bfc6;
+  --amber:#d97706;--amber2:#e67e22;--amber3:#fceabb;
+  --rose:#c0392b;--cyan:#16a085;--blue:#2980b9;--emerald:#27ae60;
+  --purple:#8e44ad;--lime:#2e86c1;--orange:#f39c12;--pink:#d980fa;
+  --text:#2c3e50;--text2:#596275;--text3:#7a828e;
   --r:14px;--rs:8px;
 }
 html{scroll-behavior:smooth;background:var(--bg)}
@@ -123,34 +123,178 @@ section .lead{font-size:1.05rem;color:var(--text2);margin-bottom:2rem;max-width:
 
 <!-- ============ TOC ============ -->
 <div class="toc" id="toc">
-  <a class="toc-item" href="#sec-overview"><span class="num">01</span>全局鸟瞰：一条消息的完整旅程</a>
-  <a class="toc-item" href="#sec-entry"><span class="num">02</span>入口：从 nanobot agent 到 Python 函数</a>
-  <a class="toc-item" href="#sec-config"><span class="num">03</span>Config：配置文件怎么变成代码对象</a>
-  <a class="toc-item" href="#sec-provider"><span class="num">04</span>Provider：AI 大脑的"电话线"</a>
-  <a class="toc-item" href="#sec-bus"><span class="num">05</span>MessageBus：消息传送带</a>
-  <a class="toc-item" href="#sec-session"><span class="num">06</span>Session：聊天记录管理员</a>
-  <a class="toc-item" href="#sec-context"><span class="num">07</span>ContextBuilder：提示词组装工厂</a>
-  <a class="toc-item" href="#sec-loop"><span class="num">08</span>AgentLoop：大脑指挥部（最核心！）</a>
-  <a class="toc-item" href="#sec-tools"><span class="num">09</span>Tools：Agent 的双手</a>
-  <a class="toc-item" href="#sec-memory"><span class="num">10</span>Memory：记忆的浓缩与持久化</a>
-  <a class="toc-item" href="#sec-skills"><span class="num">11</span>Skills：可热插拔的技能包</a>
-  <a class="toc-item" href="#sec-fullflow"><span class="num">12</span>完整流程：源码级逐行追踪</a>
-  <a class="toc-item" href="#sec-dataflow"><span class="num">13</span>数据流完整示意图（飞书/Telegram/CLI）</a>
+  <a class="toc-item" href="#sec-structure"><span class="num">01</span>项目目录结构总览</a>
+  <a class="toc-item" href="#sec-feishu-flow"><span class="num">02</span>飞书消息流转可视化</a>
+  <a class="toc-item" href="#sec-overview"><span class="num">03</span>全局鸟瞰：一条消息的完整旅程</a>
+  <a class="toc-item" href="#sec-entry"><span class="num">04</span>入口：从 nanobot agent 到 Python 函数</a>
+  <a class="toc-item" href="#sec-config"><span class="num">05</span>Config：配置文件怎么变成代码对象</a>
+  <a class="toc-item" href="#sec-provider"><span class="num">06</span>Provider：AI 大脑的"电话线"</a>
+  <a class="toc-item" href="#sec-bus"><span class="num">07</span>MessageBus：消息传送带</a>
+  <a class="toc-item" href="#sec-session"><span class="num">08</span>Session：聊天记录管理员</a>
+  <a class="toc-item" href="#sec-context"><span class="num">09</span>ContextBuilder：提示词组装工厂</a>
+  <a class="toc-item" href="#sec-loop"><span class="num">10</span>AgentLoop：大脑指挥部（最核心！）</a>
+  <a class="toc-item" href="#sec-tools"><span class="num">11</span>Tools：Agent 的双手</a>
+  <a class="toc-item" href="#sec-memory"><span class="num">12</span>Memory：记忆的浓缩与持久化</a>
+  <a class="toc-item" href="#sec-skills"><span class="num">13</span>Skills：可热插拔的技能包</a>
+  <a class="toc-item" href="#sec-fullflow"><span class="num">14</span>完整流程：源码级逐行追踪</a>
+  <a class="toc-item" href="#sec-dataflow"><span class="num">15</span>数据流完整示意图（飞书/Telegram/CLI）</a>
 </div>
 
-<!-- ============ 01 OVERVIEW ============ -->
+<!-- ============ 01 STRUCTURE ============ -->
+<section id="sec-structure" data-nav="目录结构">
+  <span class="tag" style="background:rgba(34,211,238,.12);color:var(--cyan)">第一章</span>
+  <h2 class="rv">项目目录结构总览</h2>
+  <p class="lead rv">在开始代码追踪前，先来认识一下整个工程的大体框架。</p>
+
+  <div class="codeblock rv">
+<div class="bar"><div class="dots"><div class="dot" style="background:#ff5f56"></div><div class="dot" style="background:#ffbd2e"></div><div class="dot" style="background:#27c93f"></div></div></div>
+<pre>nanobot/                         <span class="cm">← 项目根目录</span>
+├── bridge/                      <span class="cm">← 桥接服务网络 (TypeScript 等)</span>
+├── docs/                        <span class="cm">← 项目文档目录</span>
+├── <span class="hl">nanobot/</span>                     <span class="cm">← 核心包</span>
+│   ├── <span class="hl">agent/</span>                   <span class="cm">← 🧠 Agent 核心 (最重要)</span>
+│   │   ├── loop.py              <span class="cm">← Agent 主循环 (ReAct Loop)</span>
+│   │   ├── context.py           <span class="cm">← 上下文构建器 (System Prompt 组装)</span>
+│   │   ├── memory.py            <span class="cm">← 记忆系统 (长短期记忆)</span>
+│   │   ├── skills.py            <span class="cm">← 技能加载器</span>
+│   │   ├── subagent.py          <span class="cm">← 子 Agent 管理</span>
+│   │   └── <span class="hl">tools/</span>               <span class="cm">← 🛠️ 工具集</span>
+│   │       ├── registry.py      <span class="cm">← 工具注册表与执行分发</span>
+│   │       ├── filesystem.py    <span class="cm">← 文件读写工具</span>
+│   │       ├── shell.py         <span class="cm">← 终端命令工具</span>
+│   │       ├── web.py           <span class="cm">← 网页搜索与抓取工具</span>
+│   │       ├── message.py       <span class="cm">← 跨频道发信工具</span>
+│   │       └── ...              <span class="cm">← 其他(cron/mcp等)</span>
+│   ├── <span class="hl">bus/</span>                     <span class="cm">← 🚌 消息总线 (解耦核心)</span>
+│   │   ├── events.py            <span class="cm">← 消息数据实体定义 (Inbound/Outbound等)</span>
+│   │   └── queue.py             <span class="cm">← 基于 asyncio.Queue 的异步队列分发</span>
+│   ├── <span class="hl">channels/</span>                <span class="cm">← 📡 通信渠道 (消息来源)</span>
+│   │   ├── base.py              <span class="cm">← 渠道抽象基类 (BaseChannel)</span>
+│   │   ├── manager.py           <span class="cm">← 渠道注册、生命周期与出站分发器</span>
+│   │   └── feishu.py, tg.py...  <span class="cm">← 各平台接入具体实现逻辑</span>
+│   ├── <span class="hl">session/</span>                 <span class="cm">← 🗂️ 会话管理 (历史记录存储)</span>
+│   │   └── manager.py           <span class="cm">← 基于 jsonl 的增量持久化存储和短期上下文召回</span>
+│   ├── <span class="hl">providers/</span>               <span class="cm">← 🔌 LLM 模型接入层</span>
+│   │   ├── base.py              <span class="cm">← 大模型访问通用协议约束</span>
+│   │   ├── litellm_provider.py  <span class="cm">← 统一切换千百种模型的基底库</span>
+│   │   ├── azure_openai...      <span class="cm">← 专项/私密模型接入点</span>
+│   │   └── registry.py          <span class="cm">← Provider 注册和发现器</span>
+│   ├── cli/                     <span class="cm">← 💻 命令行入口</span>
+│   │   ├── commands.py          <span class="cm">← Typer 主挂载脚本 (运行 agent / gateway 等指令)</span>
+│   │   └── onboard_wizard.py    <span class="cm">← 首次启动时的交互配置引导</span>
+│   ├── config/                  <span class="cm">← ⚙️ 配置解析逻辑</span>
+│   │   ├── schema.py            <span class="cm">← 严苛的 Pydantic 模型，守护配置安全</span>
+│   │   └── loader.py            <span class="cm">← 读取并载入 ~/.nanobot 空间文件的工具</span>
+│   ├── cron/                    <span class="cm">← ⏰ 定时任务调度系统</span>
+│   │   └── service.py           <span class="cm">← 解析 Crontab/间隔，进行异步后台唤醒</span>
+│   ├── heartbeat/               <span class="cm">← 💓 心跳与监控</span>
+│   │   └── service.py           <span class="cm">← Webhook 健康拨测和告活探针</span>
+│   ├── security/                <span class="cm">← 🛡️ 权限校验与网络隔离</span>
+│   │   └── network.py           <span class="cm">← 拦截本地私有网络 SSRF 投毒等攻防机制</span>
+│   ├── utils/                   <span class="cm">← 🔧 通用辅助工具类库</span>
+│   │   ├── helpers.py           <span class="cm">← 文本溢出截断、加盐等通用操作函数</span>
+│   │   └── evaluator.py         <span class="cm">← 指令及参数的安全解释执行器</span>
+│   ├── skills/                  <span class="cm">← 🪄 可插拔的 Markdown 技能包</span>
+│   └── templates/               <span class="cm">← 📝 启动配置与脚手架模板</span>
+└── tests/                       <span class="cm">← 🧪 测试用例集</span>
+</pre>
+  </div>
+</section>
+
+<!-- ============ 02 FEISHU FLOW ============ -->
+<section id="sec-feishu-flow" data-nav="飞书流转">
+  <span class="tag" style="background:rgba(245,158,11,.15);color:var(--amber)">第二章</span>
+  <h2 class="rv">飞书消息流转 (Gateway 模式)</h2>
+  <p class="lead rv">当使用 <code>nanobot gateway</code> 启动时，系统将作为 Web 服务器接收飞书事件。消息是怎么一步步流转并返回给你的呢？</p>
+
+  <style>
+    .gf-list { display: flex; flex-direction: column; margin: 2rem 0; font-family: 'Noto Sans SC', sans-serif; }
+    .gf-item { 
+      display: flex; align-items: center; background: var(--bg); border: 1px solid var(--bg3); 
+      border-left: 6px solid var(--c); border-radius: 8px; padding: 1.2rem 1.5rem; gap: 1.5rem; 
+      margin-bottom: 2rem; position: relative; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .gf-item::after { 
+      content: '↓'; position: absolute; bottom: -1.8rem; left: 50%; transform: translateX(-50%); 
+      color: var(--text3); font-size: 1.2rem; font-family: 'JetBrains Mono', monospace; font-weight: bold;
+    }
+    .gf-item:last-child::after { display: none; }
+    .gf-item:last-child { margin-bottom: 0; }
+    
+    .gf-num { 
+      width: 38px; height: 38px; background: var(--c); color: #fff; border-radius: 50%; 
+      display: flex; justify-content: center; align-items: center; font-weight: 900; font-size: 1.1rem; flex-shrink: 0; 
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+    .gf-icon { font-size: 1.8rem; flex-shrink: 0; line-height: 1; }
+    
+    .gf-text { display: flex; flex-direction: column; gap: 0.3rem; }
+    .gf-text h3 { color: var(--c); font-size: 1.15rem; margin: 0; font-weight: 700; display:flex; align-items:center; gap: 8px;}
+    .gf-sub { color: var(--text3); font-size: 0.85rem; font-family: 'JetBrains Mono', monospace; padding: 2px 6px; background: var(--bg3); border-radius: 4px;}
+    .gf-text p { color: var(--text2); font-size: 0.9rem; margin: 0; font-family: 'JetBrains Mono', monospace; }
+  </style>
+
+  <div class="gf-list rv">
+    <div class="gf-item" style="--c:#10b981;">
+      <div class="gf-num">1</div>
+      <div class="gf-icon">👱‍♂️</div>
+      <div class="gf-text">
+        <h3>你发消息</h3>
+        <p>在飞书 App 的对话框中按下发送</p>
+      </div>
+    </div>
+
+    <div class="gf-item" style="--c:#3b82f6;">
+      <div class="gf-num">2</div>
+      <div class="gf-icon">🌐</div>
+      <div class="gf-text">
+        <h3>飞书开放平台 <span class="gf-sub">事件订阅 (WebSocket)</span></h3>
+        <p>无需暴露公网 Webhook，通过 WSS 长连接将事件直接下发至对应的 Feishu Channel</p>
+      </div>
+    </div>
+
+    <div class="gf-item" style="--c:#d97706;">
+      <div class="gf-num">3</div>
+      <div class="gf-icon">🚪</div>
+      <div class="gf-text">
+        <h3>FeishuChannel 接收 <span class="gf-sub">_handle_webhook()</span></h3>
+        <p>校验签名 + 解密数据 + 提取内容 → publish_inbound()</p>
+      </div>
+    </div>
+
+    <div class="gf-item" style="--c:#8b5cf6;">
+      <div class="gf-num">4</div>
+      <div class="gf-icon">🤖</div>
+      <div class="gf-text">
+        <h3>AgentLoop.run <span class="gf-sub">大脑处理核心</span></h3>
+        <p>consume_inbound → _dispatch → _process_message → (反思/工具调用/生成文本) → publish_outbound()</p>
+      </div>
+    </div>
+
+    <div class="gf-item" style="--c:#10b981;">
+      <div class="gf-num">5</div>
+      <div class="gf-icon">📱</div>
+      <div class="gf-text">
+        <h3>你看到回复</h3>
+        <p>ChannelManager → consume_outbound → FeishuChannel.send() 调飞书 API 发送卡片/文本</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 03 OVERVIEW ============ -->
 <section id="sec-overview" data-nav="全局鸟瞰">
-  <span class="tag" style="background:rgba(245,158,11,.12);color:var(--amber)">第一章</span>
+  <span class="tag" style="background:rgba(163,230,53,.12);color:var(--lime)">第三章</span>
   <h2 class="rv">全局鸟瞰：一条消息的完整旅程</h2>
-  <p class="lead rv">在深入每个类之前，先用一张图看看全貌。当你在终端输入一句话，数据会经过哪些"车站"？</p>
+  <p class="lead rv">在深入每个类之前，先用一张图看看全貌。当你在飞书输入一句话，数据会经过哪些"车站"？</p>
 
   <div class="diagram rv">
-<span class="hl">你在终端输入: "帮我查一下杭州天气"</span>
+<span class="hl">你在飞书内输入: "帮我查一下杭州天气"</span>
         │
         ▼
 ┌──────────────────┐
-│  <span class="c1">CLI 入口</span>          │  commands.py → agent() 函数
-│  加载配置、创建组件  │  Config → Provider → AgentLoop
+│  <span class="c1">Gateway 容器</span>       │  commands.py → gateway() 启动服务
+│  监听 WSS 长连接      │  FeishuChannel 建立 WebSocket 接收飞书事件推送
 └────────┬─────────┘
          │  通过 MessageBus 发布 InboundMessage
          ▼
@@ -186,70 +330,60 @@ section .lead{font-size:1.05rem;color:var(--text2);margin-bottom:2rem;max-width:
          │
          ▼
 ┌──────────────────┐
-│  <span class="c5">终端显示回复</span>     │  "杭州明天晴天 ☀️ ..."
+│  <span class="c5">飞书显示回复</span>     │  ChannelManager → 飞书 API
 └──────────────────┘
 </div>
 
   <div class="tip rv">
-    <strong>一句话总结：</strong>CLI 入口负责「启动」，MessageBus 负责「传话」，AgentLoop 负责「想+做」，
-    Provider 负责「问 AI」，Tools 负责「干活」，Session 负责「记录」，Memory 负责「浓缩记忆」。
-    接下来我们逐个拆开看。
+    <strong>一句话总结：</strong>Gateway 负责「接收飞书推送」，MessageBus 负责「传话」，AgentLoop 负责「想+做」，
+    Provider 负责「问 AI」，Tools 负责「干活」，Session 负责「记录」，最后通过 API 推送回飞书。
   </div>
 </section>
 
-<!-- ============ 02 ENTRY ============ -->
+<!-- ============ 04 ENTRY ============ -->
 <section id="sec-entry" data-nav="入口">
-  <span class="tag" style="background:rgba(96,165,250,.12);color:var(--blue)">第二章</span>
-  <h2 class="rv">入口：从 <code>nanobot agent</code> 到 Python 函数</h2>
-  <p class="lead rv">你敲下命令的那一瞬间，发生了什么？</p>
+  <span class="tag" style="background:rgba(96,165,250,.12);color:var(--blue)">第四章</span>
+  <h2 class="rv">入口：从 <code>nanobot gateway</code> 到 服务启动</h2>
+  <p class="lead rv">你敲下启动后端服务的命令后，发生了什么？</p>
 
   <div class="tip rv">
-    <strong>比喻：</strong>这就像你按下电视遥控器的开机键——遥控器（终端命令）发出信号，
-    电视（Python 程序）收到后依次接通电源、调好频道、亮起屏幕。
+    <strong>比喻：</strong>这就像你开了一家店（宿主进程）。你不仅要在后厨（大脑）准备好做饭的工具，还要安排各个渠道业务员（各 Channel）建立常驻线路接收远端点单。
   </div>
 
   <div class="timeline rv">
     <div class="tl-step">
       <div class="tl-dot" style="background:var(--blue);color:var(--bg)">1</div>
-      <h4 style="color:var(--blue)">Shell 执行 <code>.venv/bin/nanobot</code></h4>
-      <p>这是 <code>pip install -e .</code> 时自动生成的脚本。它只做一件事：</p>
-      <div class="detail">from nanobot.cli.commands import app
-app()   # ← 这个 app 是 Typer 应用，它会解析你输入的子命令</div>
+      <h4 style="color:var(--blue)">Typer 路由到 <code>gateway()</code> 函数</h4>
+      <p>当你执行 <code>nanobot gateway</code>，Typer 会解析并去执行 <code>commands.py</code> 里被 <code>@app.command()</code> 装饰的 <code>gateway()</code>。</p>
     </div>
     <div class="tl-step">
       <div class="tl-dot" style="background:var(--blue);color:var(--bg)">2</div>
-      <h4 style="color:var(--blue)">Typer 路由到 <code>agent()</code> 函数</h4>
-      <p>Typer（一个命令行框架，帮你把 Python 函数变成终端命令）看到你输入的是 <code>agent</code>，
-      就去执行 <code>commands.py</code> 里被 <code>@app.command()</code> 装饰的 <code>agent()</code> 函数。</p>
+      <h4 style="color:var(--blue)">基础组件装配与初始化</h4>
+      <p>这个函数是整个程序的"总装车间"，它依次准备了这些东西：</p>
+      <div class="detail">① _load_runtime_config()     # 读取用户配置 → Config 对象
+② sync_workspace_templates() # 同步必要的文件（如工具脚本）
+③ MessageBus()               # 创建核心的消息总线
+④ _make_provider(config)     # 根据配置创建好 LLM 提供商 (如准备好去调 DeepSeek)</div>
     </div>
     <div class="tl-step">
       <div class="tl-dot" style="background:var(--blue);color:var(--bg)">3</div>
-      <h4 style="color:var(--blue)"><code>agent()</code> 函数的 6 步启动</h4>
-      <p>这个函数是整个程序的"总装车间"，它依次做这些事：</p>
-      <div class="detail">① _load_runtime_config()     # 读取 ~/.nanobot/config.json → Config 对象
-② sync_workspace_templates() # 确保工作区里的模板文件是最新的
-③ MessageBus()               # 创建消息传送带
-④ _make_provider(config)     # 根据配置创建 AI 提供商（DeepSeek/OpenAI/…）
-⑤ AgentLoop(bus, provider, ...)  # 创建大脑指挥部，注册所有工具
-⑥ asyncio.run(run_interactive()) # 启动异步事件循环，进入交互模式</div>
+      <h4 style="color:var(--blue)">启动三大守护进程</h4>
+      <p>进入 Gateway 模式后，系统并不是只跑一个大循环，而是派出了几路并发的任务在后台一起工作：</p>
+      <div class="detail">A. agent_loop.run()  → 不断在总线中等待处理消息、思考并执行工具
+B. ChannelManager    → 管理分发各个不同渠道(飞书、TG、Discord等)出站消息
+C. Heartbeat/Cron    → 定时心跳与计划任务处理</div>
     </div>
     <div class="tl-step">
       <div class="tl-dot" style="background:var(--blue);color:var(--bg)">4</div>
-      <h4 style="color:var(--blue)">交互模式的运行结构</h4>
-      <p>进入交互模式后，程序同时跑着两个"工人"：</p>
-      <div class="detail">工人 A: agent_loop.run()     → 不断从总线取消息、处理、发回复
-工人 B: _consume_outbound() → 不断从总线取回复、显示在屏幕上
-
-你输入文字 → 包装成 InboundMessage → 丢进总线
-→ 工人 A 取到 → 处理 → 回复丢进总线
-→ 工人 B 取到 → 显示在终端</div>
+      <h4 style="color:var(--blue)">拉起并发协程 (服务启动)</h4>
+      <p>最后利用 <code>asyncio.gather(...)</code> 启动一系列并发常驻协程：包含了 <code>agent.run()</code> 主循环持续待命，及 <code>channels.start_all()</code> (进而由通道自身开启远端 API 网关的 WebSocket 长连接或者心跳侦听)。</p>
     </div>
   </div>
 </section>
 
-<!-- ============ 03 CONFIG ============ -->
+<!-- ============ 05 CONFIG ============ -->
 <section id="sec-config" data-nav="Config">
-  <span class="tag" style="background:rgba(163,230,53,.12);color:var(--lime)">第三章</span>
+  <span class="tag" style="background:rgba(163,230,53,.12);color:var(--lime)">第五章</span>
   <h2 class="rv">Config：配置文件怎么变成代码对象</h2>
   <p class="lead rv">一个 JSON 文件，是怎么变成程序能理解的"指令"的？</p>
 
@@ -358,14 +492,53 @@ app()   # ← 这个 app 是 Typer 应用，它会解析你输入的子命令</d
     <div class="body">
       <p>绝大多数提供商都走这个实现。它用 <strong>LiteLLM</strong>（一个万能翻译器库）来统一不同 AI 的接口。</p>
       <p><code>chat()</code> 方法的内部流程：</p>
-      <div class="detail" style="font-size:.78rem">① _resolve_model()  → 加上提供商前缀（如 "deepseek/deepseek-chat"）
-② 构建请求参数    → model, messages, max_tokens, temperature, tools...
-③ 设置 API Key    → 通过环境变量传给 LiteLLM
-④ acompletion()   → 异步调用 AI（这是真正发 HTTP 请求的地方！）
-⑤ _parse_response() → 把 AI 的原始回复解析成 LLMResponse
-   - 提取 content（文字回复）
-   - 提取 tool_calls（工具调用请求）
-   - 用 json_repair 修复可能畸形的 JSON 参数</div>
+      
+      <div style="display:flex;flex-direction:column;gap:15px;margin-top:1rem;">
+        <div style="background:var(--bg); border:1px solid var(--bg3); border-radius:10px; padding:1.2rem; position:relative;">
+          <h4 style="color:var(--text); margin-bottom:.5rem; font-size:1rem; display:flex; align-items:center; gap:8px;">
+            <span style="background:var(--bg3); display:inline-flex; width:22px; height:22px; border-radius:50%; align-items:center; justify-content:center; color:var(--text); font-size:0.8rem; font-weight:bold;">1</span> 
+            解析模型
+          </h4>
+          <p style="color:var(--text2); font-size:0.85rem; margin:0;">_resolve_model()  → 加上提供商前缀（如 "deepseek/deepseek-chat"）</p>
+        </div>
+        
+        <div style="background:var(--bg); border:1px solid var(--bg3); border-radius:10px; padding:1.2rem; position:relative;">
+          <h4 style="color:var(--text); margin-bottom:.5rem; font-size:1rem; display:flex; align-items:center; gap:8px;">
+            <span style="background:var(--bg3); display:inline-flex; width:22px; height:22px; border-radius:50%; align-items:center; justify-content:center; color:var(--text); font-size:0.8rem; font-weight:bold;">2</span> 
+            构建请求参数
+          </h4>
+          <p style="color:var(--text2); font-size:0.85rem; margin:0;">model, messages, max_tokens, temperature, tools...</p>
+        </div>
+        
+        <div style="background:var(--bg); border:1px solid var(--bg3); border-radius:10px; padding:1.2rem; position:relative;">
+          <h4 style="color:var(--text); margin-bottom:.5rem; font-size:1rem; display:flex; align-items:center; gap:8px;">
+            <span style="background:var(--bg3); display:inline-flex; width:22px; height:22px; border-radius:50%; align-items:center; justify-content:center; color:var(--text); font-size:0.8rem; font-weight:bold;">3</span> 
+            设置 API Key
+          </h4>
+          <p style="color:var(--text2); font-size:0.85rem; margin:0;">通过环境变量传给 LiteLLM</p>
+        </div>
+
+        <div style="background:var(--bg); border:1px solid var(--bg3); border-radius:10px; padding:1.2rem; position:relative;">
+          <h4 style="color:var(--text); margin-bottom:.5rem; font-size:1rem; display:flex; align-items:center; gap:8px;">
+            <span style="background:var(--amber); display:inline-flex; width:22px; height:22px; border-radius:50%; align-items:center; justify-content:center; color:var(--bg); font-size:0.8rem; font-weight:bold;">4</span> 
+            异步调用 AI
+          </h4>
+          <p style="color:var(--text2); font-size:0.85rem; margin:0;">acompletion() → 这是真正发 HTTP 请求的地方！</p>
+        </div>
+
+        <div style="background:var(--bg); border:1px solid var(--bg3); border-radius:10px; padding:1.2rem; position:relative;">
+          <h4 style="color:var(--text); margin-bottom:.5rem; font-size:1rem; display:flex; align-items:center; gap:8px;">
+            <span style="background:var(--bg3); display:inline-flex; width:22px; height:22px; border-radius:50%; align-items:center; justify-content:center; color:var(--text); font-size:0.8rem; font-weight:bold;">5</span> 
+            解析原始回复
+          </h4>
+          <p style="color:var(--text2); font-size:0.85rem; margin:0; line-height: 1.5;">
+            _parse_response() → 把 AI 的原始回复解析成 LLMResponse: <br>
+            - 提取 content（文字回复）<br>
+            - 提取 tool_calls（工具调用请求）<br>
+            - 用 json_repair 修复可能畸形的 JSON 参数
+          </p>
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -810,99 +983,80 @@ return (final_content, tools_used, messages)</div>
 <!-- ============ 12 FULL FLOW ============ -->
 <section id="sec-fullflow" data-nav="完整追踪">
   <span class="tag" style="background:rgba(245,158,11,.15);color:var(--amber)">第十二章 · 终章</span>
-  <h2 class="rv">完整流程：源码级逐行追踪</h2>
-  <p class="lead rv">现在把所有零件串起来。你在终端输入"帮我查一下杭州天气"，代码到底怎么跑的？每一步都标注了对应的文件和方法。</p>
+  <h2 class="rv">完整流程：以 Gateway 推送为例逐行追踪</h2>
+  <p class="lead rv">现在把所有零件串起来。当你在飞书发出"帮我查一下杭州天气"后，后台代码到底是怎么跑的？每一步都为你标注了对应的文件和方法。</p>
 
   <div class="timeline rv">
 
     <div class="tl-step">
       <div class="tl-dot" style="background:var(--blue);color:var(--bg)">①</div>
-      <h4 style="color:var(--blue)">终端输入 → CLI 入口</h4>
-      <p><code>commands.py</code> → <code>agent()</code> → <code>run_interactive()</code></p>
-      <div class="detail">你输入的文字被 prompt_toolkit 读取
-→ 包装成 InboundMessage(channel="cli", sender_id="user",
-     chat_id="direct", content="帮我查一下杭州天气")
-→ bus.publish_inbound(msg)  # 丢进传送带</div>
+      <h4 style="color:var(--blue)">飞书发送 → 网关接收</h4>
+      <p><code>channels/feishu.py</code> → <code>_handle_webhook()</code></p>
+      <div class="detail">常驻的 Socket 协程流中收到飞书长连接推来的 Event
+→ 进行验密解包和 Payload 提取
+→ 包装成 InboundMessage(channel="feishu", sender_id="U123",
+     chat_id="C456", content="帮我查一下杭州天气")
+→ bus.publish_inbound(msg)  # 把消息丢进总站传送带交给主循环</div>
     </div>
 
     <div class="tl-step">
       <div class="tl-dot" style="background:var(--purple);color:var(--bg)">②</div>
       <h4 style="color:var(--purple)">AgentLoop.run() 取到消息</h4>
       <p><code>loop.py</code> → <code>run()</code> → <code>_dispatch(msg)</code></p>
-      <div class="detail">主循环 consume_inbound() 取到了这条消息
+      <div class="detail">主循环 consume_inbound() 从传送带取到了这条飞书消息
 → 创建异步任务 _dispatch(msg)
-→ 获取 _processing_lock（同一时间只处理一条消息）
-→ 调用 _process_message(msg)</div>
+→ 获取 _processing_lock（同一时间只处理一条消息防重）
+→ 调用 _process_message(msg) 开始装配</div>
     </div>
 
     <div class="tl-step">
       <div class="tl-dot" style="background:var(--amber);color:var(--bg)">③</div>
-      <h4 style="color:var(--amber)">_process_message() 处理</h4>
+      <h4 style="color:var(--amber)">_process_message() 准备历史记录</h4>
       <p><code>loop.py</code> → <code>_process_message()</code></p>
-      <div class="detail">→ session = session_manager.get_or_create("cli:direct")
-   # 从文件加载或创建新会话
+      <div class="detail">→ session = session_manager.get_or_create("feishu:C456")
+   # 找出你之前在飞书的聊天记录（会话）
 
 → 检查未整理消息数 < 100？不用整理记忆，继续
 
-→ _set_tool_context("cli", "direct")
-   # 告诉 message 工具和 cron 工具当前在哪个渠道
+→ _set_tool_context("feishu", "direct")
+   # 绑定运行时环境给发消息和定时任务工具
 
 → history = session.get_history()
-   # 取出上次整理记忆后的所有消息
-
-→ messages = context.build_messages(
-     history=history,
-     current_message="帮我查一下杭州天气",
-     channel="cli", chat_id="direct"
-   )</div>
+   # 取出上次整理记忆后你们的几段对话</div>
     </div>
 
     <div class="tl-step">
       <div class="tl-dot" style="background:var(--emerald);color:var(--bg)">④</div>
       <h4 style="color:var(--emerald)">ContextBuilder 组装消息</h4>
       <p><code>context.py</code> → <code>build_messages()</code> → <code>build_system_prompt()</code></p>
-      <div class="detail">系统提示词 = [
-  "你是 nanobot，一个个人 AI 助手...",     # 身份
-  "当前系统: macOS arm64, Python 3.12...", # 环境
-  "--- AGENTS.md 内容 ---",               # 启动文件
-  "--- SOUL.md 内容 ---",
-  "## Long-term Memory\n用户偏好中文...",   # 长期记忆
-  "&lt;skills&gt;...&lt;/skills&gt;",               # 技能摘要
-].join("\n\n---\n\n")
+      <div class="detail">这一处开始把之前所有准备工作拼装成一个大长篇准备提交给预设的AI：
 
-用户消息 = "[Runtime Context] time=2026-03-08T17:30+08:00, channel=cli\n\n帮我查一下杭州天气"
+系统提示词 = [
+  "你是 nanobot，一个工作助理...",     # 基本人设
+  "当前运行在一台 CentOS 上...",       # 环境说明
+  "--- AGENTS.md 规范 ---",          # 从工作区加载的规约
+  "## Long-term Memory\n用户喜欢简短回答...", # 从你的记忆库提取出的特征
+  "&lt;skills&gt;...&lt;/skills&gt;",               # 你配置的工具箱清单
+]
 
-最终: [
-  {role: "system",    content: 系统提示词},
-  ...历史消息...,
-  {role: "user",      content: 用户消息}
-]</div>
+用户消息 = "[Runtime Context] 当前时间..., channel=feishu... \n帮你查询杭州天气"
+
+最终合成: [ System_Prompt, ...之前的聊天记录, New_User_Message ]</div>
     </div>
 
     <div class="tl-step">
       <div class="tl-dot" style="background:var(--rose);color:var(--bg)">⑤</div>
-      <h4 style="color:var(--rose)">_run_agent_loop() 第 1 轮</h4>
+      <h4 style="color:var(--rose)">_run_agent_loop() 第 1 轮 询问模型</h4>
       <p><code>loop.py</code> → <code>_run_agent_loop()</code> → <code>provider.chat()</code></p>
-      <div class="detail">iteration = 1
-
-→ provider.chat(messages, tools=[
-    {name:"read_file", ...},
-    {name:"write_file", ...},
-    {name:"exec", ...},
-    {name:"web_search", ...},
-    {name:"web_fetch", ...},
-    {name:"message", ...},
-    ...
-  ])
-
-→ LiteLLM 发 HTTP 请求到 DeepSeek API
-→ DeepSeek 返回:
+      <div class="detail">把上头组拼好的 `messages` 以及挂载好所有的 `tools`(如查询天气的工具)，调用配置设置好的 `provider`(此时是例如 DeepSeek)。
+→ LiteLLM 将内容发出并拿到 response
+→ DeepSeek 判定这个诉求它自己办不到，需要工具辅助：
    response.has_tool_calls = true
    response.tool_calls = [
      ToolCallRequest(
-       id="call_abc123",
+       id="call_abc",
        name="web_search",
-       arguments={"query": "杭州 明天 天气"}
+       arguments={"query": "杭州 天气"}
      )
    ]</div>
     </div>
@@ -911,61 +1065,46 @@ return (final_content, tools_used, messages)</div>
       <div class="tl-dot" style="background:var(--cyan);color:var(--bg)">⑥</div>
       <h4 style="color:var(--cyan)">执行工具：web_search</h4>
       <p><code>tools/registry.py</code> → <code>execute()</code> → <code>tools/web.py</code> → <code>WebSearchTool.execute()</code></p>
-      <div class="detail">→ context.add_assistant_message(messages, tool_calls=...)
-   # 把 AI 的工具调用请求加进消息列表
+      <div class="detail">→ 把模型工具调用的要求作为助手语录记录下来 
+→ 在本地真正的去找对应的方法 `WebSearchTool`
+   → 进行自动类型转换和容错检测 
+   → 发起 HTTP 请求 `api.search.brave.com...` (或者直接调外部API)
+   → 返回搜索出结果的文本
 
-→ tools.execute("web_search", {"query": "杭州 明天 天气"})
-   → 类型转换: cast_params()
-   → 参数校验: validate_params()
-   → WebSearchTool.execute(query="杭州 明天 天气")
-     → HTTP GET api.search.brave.com/res/v1/web/search?q=杭州+明天+天气
-     → 返回: "1. 杭州明天晴 25°C..."
-
-→ context.add_tool_result(messages, "call_abc123", "web_search", "1. 杭州明天晴 25°C...")
-   # 把工具结果加进消息列表</div>
+→ 将搜索出来的文本作为这通 "call_abc" 专属的回调补充进对话记录列</div>
     </div>
 
     <div class="tl-step">
       <div class="tl-dot" style="background:var(--rose);color:var(--bg)">⑦</div>
-      <h4 style="color:var(--rose)">_run_agent_loop() 第 2 轮</h4>
-      <p><code>loop.py</code> → <code>provider.chat()</code>（带着工具结果再问一次）</p>
-      <div class="detail">iteration = 2
+      <h4 style="color:var(--rose)">_run_agent_loop() 第 2 轮 再问一次</h4>
+      <p><code>loop.py</code> → <code>provider.chat()</code>（带着工具结果继续）</p>
+      <div class="detail">此时的 `messages` 已经包含了搜索工具的结果了。
 
-→ provider.chat(messages_with_tool_result, tools=...)
-→ DeepSeek 看到搜索结果，觉得够了
+→ DeepSeek 看到天气文本结果之后分析后认为信息足具。
 → response.has_tool_calls = false
-→ response.content = "杭州明天是晴天☀️，气温15~25°C，微风，很适合出门！"
+→ response.content = "杭州明天是晴天哦，建议短袖出门~"
 
-→ 循环结束！return ("杭州明天是晴天...", ["web_search"], messages)</div>
+→ **跳出多轮循环，产生定论！**</div>
     </div>
 
     <div class="tl-step">
       <div class="tl-dot" style="background:var(--lime);color:var(--bg)">⑧</div>
-      <h4 style="color:var(--lime)">保存 & 回复</h4>
-      <p><code>loop.py</code> → <code>_save_turn()</code> → <code>bus.publish_outbound()</code></p>
-      <div class="detail">→ _save_turn(session, messages)
-   # 把这轮新增的消息追加到 Session
-   # session_manager.save(session) → 写入 sessions/cli:direct.jsonl
+      <h4 style="color:var(--lime)">储存、流转为出站回复</h4>
+      <p><code>loop.py</code> → <code>ChannelManager</code> → <code>FeishuChannel.send()</code></p>
+      <div class="detail">→ 将最终定论以及历史对话写回并保存
+→ 打包成 OutboundMessage 发往出站传送带
 
-→ OutboundMessage(channel="cli", chat_id="direct",
-     content="杭州明天是晴天☀️...")
-→ bus.publish_outbound(msg)  # 丢进出站传送带
-
-→ CLI 的 _consume_outbound() 取到回复
-→ rich.Markdown 渲染后显示在终端
-
-🎉 你看到了回复！</div>
+→ 外侧运行守护的分发控制器取到回复
+→ 发现渠道为 feishu, 转交给 `FeishuChannel`
+→ 开始用飞书开放套件直接生成 Markdown 请求发回给对应飞书人
+🎉 到这里，你的手机就在几秒后滴了一声，收到了回复！</div>
     </div>
 
   </div>
 
   <div class="tip rv">
-    <strong>恭喜你走完了全程！</strong>从你敲下回车到看到回复，代码经过了：
-    <code>commands.py</code> → <code>MessageBus</code> → <code>AgentLoop.run()</code> → <code>_process_message()</code>
-    → <code>ContextBuilder</code> → <code>_run_agent_loop()</code> → <code>Provider.chat()</code>
-    → <code>ToolRegistry.execute()</code> → <code>Provider.chat()</code>（第 2 轮）→ <code>Session.save()</code> → <code>MessageBus</code> → 终端显示。
-    <br><br>
-    每个文件各司其职，互不耦合——这就是为什么 4000 行代码就能做一个完整的 AI Agent。
+    <strong>整个流程的秘密就在这！</strong>
+    这套解耦且规整的传递方式就是这虽然只用 `4000` 左右代码量构建项目，但也让架构非常可控、非常易扩张（甚至添加一个全新企微应用、再挂几百个不同工具）的核心设计法则！
   </div>
 </section>
 
