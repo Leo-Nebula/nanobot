@@ -10,6 +10,7 @@ from loguru import logger
 
 from nanobot.bus.events import InboundMessage, OutboundMessage
 from nanobot.bus.queue import MessageBus
+from nanobot.utils.trace_logging import trace_event
 
 
 class BaseChannel(ABC):
@@ -124,6 +125,17 @@ class BaseChannel(ABC):
             media=media or [],
             metadata=metadata or {},
             session_key_override=session_key,
+        )
+
+        trace_event(
+            "channel_inbound",
+            channel=self.name,
+            sender_id=str(sender_id),
+            chat_id=str(chat_id),
+            session_key=msg.session_key,
+            content=content,
+            media=media or [],
+            metadata=metadata or {},
         )
 
         await self.bus.publish_inbound(msg)

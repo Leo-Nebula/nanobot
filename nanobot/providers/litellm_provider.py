@@ -13,6 +13,7 @@ from loguru import logger
 
 from nanobot.providers.base import LLMProvider, LLMResponse, ToolCallRequest
 from nanobot.providers.registry import find_by_model, find_gateway
+from nanobot.utils.trace_logging import summarize_value, trace_event
 
 # Standard chat-completion message keys.
 _ALLOWED_MSG_KEYS = frozenset({"role", "content", "tool_calls", "tool_call_id", "name", "reasoning_content"})
@@ -278,7 +279,29 @@ class LiteLLMProvider(LLMProvider):
             kwargs["tool_choice"] = tool_choice or "auto"
 
         try:
+            trace_event(
+                "llm_request",
+                provider="litellm",
+                payload=summarize_value(kwargs),
+            )
             response = await acompletion(**kwargs)
+            trace_event(
+                "llm_raw_response",
+                provider="litellm",
+                response={
+                    "choices": [
+                        {
+                            "finish_reason": getattr(choice, "finish_reason", None),
+                            "content": getattr(choice.message, "content", None),
+                            "tool_calls": summarize_value(getattr(choice.message, "tool_calls", None)),
+                            "reasoning_content": getattr(choice.message, "reasoning_content", None),
+                            "thinking_blocks": summarize_value(getattr(choice.message, "thinking_blocks", None)),
+                        }
+                        for choice in getattr(response, "choices", [])
+                    ],
+                    "usage": summarize_value(getattr(response, "usage", None)),
+                },
+            )
             return self._parse_response(response)
         except Exception as e:
             # Return error as content for graceful handling

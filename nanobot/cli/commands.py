@@ -526,9 +526,28 @@ def gateway(
     from nanobot.heartbeat.service import HeartbeatService
     from nanobot.session.manager import SessionManager
 
+    from loguru import logger
+
+    logger.remove()
+    logger.add(
+        sys.stderr,
+        format=(
+            "<green>[nanobot]</green> "
+            "<cyan>[{time:YYYY-MM-DD HH:mm:ss,SSS}]</cyan> "
+            "<level>[{level}]</level> "
+            "{name}:{function}:{line} - <level>{message}</level>"
+        ),
+        level="DEBUG" if verbose else "INFO",
+        colorize=True,
+    )
+
     if verbose:
         import logging
-        logging.basicConfig(level=logging.DEBUG)
+        logging.basicConfig(
+            level=logging.DEBUG,
+            format="[%(name)s] [%(asctime)s] [%(levelname)s] %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S,%f",
+        )
 
     config = _load_runtime_config(config, workspace)
     port = port if port is not None else config.gateway.port
@@ -734,6 +753,18 @@ def agent(
     cron = CronService(cron_store_path)
 
     if logs:
+        logger.remove()
+        logger.add(
+            sys.stderr,
+            format=(
+                "<green>[nanobot]</green> "
+                "<cyan>[{time:YYYY-MM-DD HH:mm:ss,SSS}]</cyan> "
+                "<level>[{level}]</level> "
+                "{name}:{function}:{line} - <level>{message}</level>"
+            ),
+            level="DEBUG",
+            colorize=True,
+        )
         logger.enable("nanobot")
     else:
         logger.disable("nanobot")

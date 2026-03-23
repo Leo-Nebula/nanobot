@@ -16,6 +16,7 @@ from nanobot.bus.queue import MessageBus
 from nanobot.channels.base import BaseChannel
 from nanobot.config.paths import get_media_dir
 from nanobot.config.schema import Base
+from nanobot.utils.trace_logging import trace_event
 from pydantic import Field
 
 import importlib.util
@@ -1066,6 +1067,18 @@ class FeishuChannel(BaseChannel):
             if chat_type == "group" and not self._is_group_message_for_bot(message):
                 logger.debug("Feishu: skipping group message (not mentioned)")
                 return
+
+            trace_event(
+                "feishu_raw_inbound",
+                message_id=message_id,
+                sender_id=sender_id,
+                chat_id=chat_id,
+                chat_type=chat_type,
+                message_type=msg_type,
+                parent_id=getattr(message, "parent_id", None),
+                root_id=getattr(message, "root_id", None),
+                raw_content=message.content,
+            )
 
             # Add reaction
             await self._add_reaction(message_id, self.config.react_emoji)

@@ -31,6 +31,7 @@ from nanobot.utils.helpers import build_status_content
 from nanobot.bus.queue import MessageBus
 from nanobot.providers.base import LLMProvider
 from nanobot.session.manager import Session, SessionManager
+from nanobot.utils.trace_logging import new_turn_id, summarize_messages, summarize_value, trace_event, trace_scope
 
 if TYPE_CHECKING:
     from nanobot.config.schema import ChannelsConfig, ExecToolConfig, WebSearchConfig
@@ -224,58 +225,91 @@ class AgentLoop:
 
             tool_defs = self.tools.get_definitions()
 
-            response = await self.provider.chat_with_retry(
-                messages=messages,
-                tools=tool_defs,
-                model=self.model,
-            )
-            usage = response.usage or {}
-            self._last_usage = {
-                "prompt_tokens": int(usage.get("prompt_tokens", 0) or 0),
-                "completion_tokens": int(usage.get("completion_tokens", 0) or 0),
-            }
+            with trace_scope(iteration=iteration):
+                trace_event(
+                    "loop_round_start",
+                    message_count=len(messages),
+                    tool_count=len(tool_defs),
+                    tools=[
+                        tool.get("function", {}).get("name")
+                        for tool in tool_defs
+                        if isinstance(tool, dict)
+                    ],
+                    messages=summarize_messages(messages),
+                )
 
-            if response.has_tool_calls:
-                if on_progress:
-                    thought = self._strip_think(response.content)
-                    if thought:
-                        await on_progress(thought)
-                    tool_hint = self._tool_hint(response.tool_calls)
-                    tool_hint = self._strip_think(tool_hint)
-                    await on_progress(tool_hint, tool_hint=True)
+                response = await self.provider.chat_with_retry(
+                    messages=messages,
+                    tools=tool_defs,
+                    model=self.model,
+                )
+                usage = response.usage or {}
+                self._last_usage = {
+                    "prompt_tokens": int(usage.get("prompt_tokens", 0) or 0),
+                    "completion_tokens": int(usage.get("completion_tokens", 0) or 0),
+                }
 
-                tool_call_dicts = [
-                    tc.to_openai_tool_call()
-                    for tc in response.tool_calls
-                ]
-                messages = self.context.add_assistant_message(
-                    messages, response.content, tool_call_dicts,
+                trace_event(
+                    "loop_round_response",
+                    finish_reason=response.finish_reason,
+                    content=response.content,
+                    usage=usage,
+                    tool_calls=[
+                        {"id": tc.id, "name": tc.name, "arguments": tc.arguments}
+                        for tc in response.tool_calls
+                    ],
                     reasoning_content=response.reasoning_content,
                     thinking_blocks=response.thinking_blocks,
                 )
 
-                for tool_call in response.tool_calls:
-                    tools_used.append(tool_call.name)
-                    args_str = json.dumps(tool_call.arguments, ensure_ascii=False)
-                    logger.info("Tool call: {}({})", tool_call.name, args_str[:200])
-                    result = await self.tools.execute(tool_call.name, tool_call.arguments)
-                    messages = self.context.add_tool_result(
-                        messages, tool_call.id, tool_call.name, result
+                if response.has_tool_calls:
+                    if on_progress:
+                        thought = self._strip_think(response.content)
+                        if thought:
+                            await on_progress(thought)
+                        tool_hint = self._tool_hint(response.tool_calls)
+                        tool_hint = self._strip_think(tool_hint)
+                        await on_progress(tool_hint, tool_hint=True)
+
+                    tool_call_dicts = [
+                        tc.to_openai_tool_call()
+                        for tc in response.tool_calls
+                    ]
+                    messages = self.context.add_assistant_message(
+                        messages, response.content, tool_call_dicts,
+                        reasoning_content=response.reasoning_content,
+                        thinking_blocks=response.thinking_blocks,
                     )
-            else:
-                clean = self._strip_think(response.content)
-                # Don't persist error responses to session history — they can
-                # poison the context and cause permanent 400 loops (#1303).
-                if response.finish_reason == "error":
-                    logger.error("LLM returned error: {}", (clean or "")[:200])
-                    final_content = clean or "Sorry, I encountered an error calling the AI model."
+
+                    for tool_call in response.tool_calls:
+                        tools_used.append(tool_call.name)
+                        args_str = json.dumps(tool_call.arguments, ensure_ascii=False)
+                        logger.info("Tool call: {}({})", tool_call.name, args_str[:200])
+                        result = await self.tools.execute(tool_call.name, tool_call.arguments)
+                        trace_event(
+                            "tool_result",
+                            tool_name=tool_call.name,
+                            tool_call_id=tool_call.id,
+                            arguments=tool_call.arguments,
+                            result=summarize_value(result),
+                        )
+                        messages = self.context.add_tool_result(
+                            messages, tool_call.id, tool_call.name, result
+                        )
+                else:
+                    clean = self._strip_think(response.content)
+                    # Don't persist error responses to session history — they can
+                    # poison the context and cause permanent 400 loops (#1303).
+                    if response.finish_reason == "error":
+                        logger.error("LLM returned error: {}", (clean or "")[:200])
+                        final_content = clean or "Sorry, I encountered an error calling the AI model."
+                        break
+                    messages = self.context.add_assistant_message(
+                        messages, clean, reasoning_content=response.reasoning_content,
+                        thinking_blocks=response.thinking_blocks,
+                    )
+                    final_content = clean
                     break
-                messages = self.context.add_assistant_message(
-                    messages, clean, reasoning_content=response.reasoning_content,
-                    thinking_blocks=response.thinking_blocks,
-                )
-                final_content = clean
-                break
 
         if final_content is None and iteration >= self.max_iterations:
             logger.warning("Max iterations ({}) reached", self.max_iterations)
@@ -402,6 +436,8 @@ class AgentLoop:
         on_progress: Callable[[str], Awaitable[None]] | None = None,
     ) -> OutboundMessage | None:
         """Process a single inbound message and return the response."""
+        turn_id = new_turn_id()
+
         # System messages: parse origin from chat_id ("channel:chat_id")
         if msg.channel == "system":
             channel, chat_id = (msg.chat_id.split(":", 1) if ":" in msg.chat_id
@@ -409,20 +445,25 @@ class AgentLoop:
             logger.info("Processing system message from {}", msg.sender_id)
             key = f"{channel}:{chat_id}"
             session = self.sessions.get_or_create(key)
-            await self.memory_consolidator.maybe_consolidate_by_tokens(session)
-            self._set_tool_context(channel, chat_id, msg.metadata.get("message_id"))
-            history = session.get_history(max_messages=0)
-            # Subagent results should be assistant role, other system messages use user role
-            current_role = "assistant" if msg.sender_id == "subagent" else "user"
-            messages = self.context.build_messages(
-                history=history,
-                current_message=msg.content, channel=channel, chat_id=chat_id,
-                current_role=current_role,
-            )
-            final_content, _, all_msgs = await self._run_agent_loop(messages)
-            self._save_turn(session, all_msgs, 1 + len(history))
-            self.sessions.save(session)
-            self._schedule_background(self.memory_consolidator.maybe_consolidate_by_tokens(session))
+            with trace_scope(turn_id=turn_id, session_key=key, channel=channel, chat_id=chat_id):
+                trace_event("turn_start", turn_id=turn_id, channel=channel,
+                            sender_id=msg.sender_id, message_type="system",
+                            content=msg.content[:200])
+                await self.memory_consolidator.maybe_consolidate_by_tokens(session)
+                self._set_tool_context(channel, chat_id, msg.metadata.get("message_id"))
+                history = session.get_history(max_messages=0)
+                current_role = "assistant" if msg.sender_id == "subagent" else "user"
+                messages = self.context.build_messages(
+                    history=history,
+                    current_message=msg.content, channel=channel, chat_id=chat_id,
+                    current_role=current_role,
+                )
+                final_content, tools_used, all_msgs = await self._run_agent_loop(messages)
+                self._save_turn(session, all_msgs, 1 + len(history))
+                self.sessions.save(session)
+                self._schedule_background(self.memory_consolidator.maybe_consolidate_by_tokens(session))
+                trace_event("turn_end", turn_id=turn_id, tools_used=tools_used,
+                            final_content=(final_content or "")[:300])
             return OutboundMessage(channel=channel, chat_id=chat_id,
                                   content=final_content or "Background task completed.")
 
@@ -470,24 +511,71 @@ class AgentLoop:
                 message_tool.start_turn()
 
         history = session.get_history(max_messages=0)
-        initial_messages = self.context.build_messages(
-            history=history,
-            current_message=msg.content,
-            media=msg.media if msg.media else None,
-            channel=msg.channel, chat_id=msg.chat_id,
-        )
+        with trace_scope(
+            turn_id=turn_id,
+            session_key=key,
+            channel=msg.channel,
+            chat_id=msg.chat_id,
+            sender_id=msg.sender_id,
+        ):
+            trace_event(
+                "turn_start",
+                turn_id=turn_id,
+                channel=msg.channel,
+                sender_id=msg.sender_id,
+                message_type="user",
+                content=msg.content[:200],
+            )
 
-        async def _bus_progress(content: str, *, tool_hint: bool = False) -> None:
-            meta = dict(msg.metadata or {})
-            meta["_progress"] = True
-            meta["_tool_hint"] = tool_hint
-            await self.bus.publish_outbound(OutboundMessage(
-                channel=msg.channel, chat_id=msg.chat_id, content=content, metadata=meta,
-            ))
+            trace_event(
+                "session_state",
+                inbound_message={
+                    "channel": msg.channel,
+                    "sender_id": msg.sender_id,
+                    "chat_id": msg.chat_id,
+                    "session_key": key,
+                    "content": msg.content,
+                    "media": msg.media,
+                    "metadata": msg.metadata,
+                },
+                session={
+                    "message_count": len(session.messages),
+                    "history_count": len(history),
+                    "last_consolidated": session.last_consolidated,
+                },
+                long_term_memory=self.context.memory.read_long_term(),
+                history=summarize_messages(history),
+            )
 
-        final_content, _, all_msgs = await self._run_agent_loop(
-            initial_messages, on_progress=on_progress or _bus_progress,
-        )
+            initial_messages = self.context.build_messages(
+                history=history,
+                current_message=msg.content,
+                media=msg.media if msg.media else None,
+                channel=msg.channel, chat_id=msg.chat_id,
+            )
+
+            trace_event(
+                "llm_input_prepared",
+                messages=summarize_messages(initial_messages),
+            )
+
+            async def _bus_progress(content: str, *, tool_hint: bool = False) -> None:
+                meta = dict(msg.metadata or {})
+                meta["_progress"] = True
+                meta["_tool_hint"] = tool_hint
+                await self.bus.publish_outbound(OutboundMessage(
+                    channel=msg.channel, chat_id=msg.chat_id, content=content, metadata=meta,
+                ))
+
+            final_content, tools_used, all_msgs = await self._run_agent_loop(
+                initial_messages, on_progress=on_progress or _bus_progress,
+            )
+
+            trace_event(
+                "loop_final_output",
+                final_content=final_content,
+                persisted_messages=summarize_messages(all_msgs),
+            )
 
         if final_content is None:
             final_content = "I've completed processing but have no response to give."
@@ -497,10 +585,22 @@ class AgentLoop:
         self._schedule_background(self.memory_consolidator.maybe_consolidate_by_tokens(session))
 
         if (mt := self.tools.get("message")) and isinstance(mt, MessageTool) and mt._sent_in_turn:
+            trace_event("turn_end", turn_id=turn_id, tools_used=tools_used,
+                        sent_via_tool=True, final_content=(final_content or "")[:300])
             return None
 
         preview = final_content[:120] + "..." if len(final_content) > 120 else final_content
         logger.info("Response to {}:{}: {}", msg.channel, msg.sender_id, preview)
+        trace_event(
+            "turn_end",
+            turn_id=turn_id,
+            tools_used=tools_used,
+            channel=msg.channel,
+            chat_id=msg.chat_id,
+            sender_id=msg.sender_id,
+            content=final_content,
+            metadata=msg.metadata or {},
+        )
         return OutboundMessage(
             channel=msg.channel, chat_id=msg.chat_id, content=final_content,
             metadata=msg.metadata or {},
