@@ -123,22 +123,29 @@ section .lead{font-size:1.05rem;color:var(--text2);margin-bottom:2rem;max-width:
 
 <!-- ============ TOC ============ -->
 <div class="toc" id="toc">
-  <a class="toc-item" href="#sec-structure"><span class="num">01</span>项目目录结构总览</a>
-  <a class="toc-item" href="#sec-feishu-flow"><span class="num">02</span>飞书消息流转可视化</a>
-  <a class="toc-item" href="#sec-overview"><span class="num">03</span>全局鸟瞰：一条消息的完整旅程</a>
-  <a class="toc-item" href="#sec-entry"><span class="num">04</span>入口：从 nanobot agent 到 Python 函数</a>
-  <a class="toc-item" href="#sec-config"><span class="num">05</span>Config：配置文件怎么变成代码对象</a>
-  <a class="toc-item" href="#sec-provider"><span class="num">06</span>Provider：AI 大脑的"电话线"</a>
-  <a class="toc-item" href="#sec-bus"><span class="num">07</span>MessageBus：消息传送带</a>
-  <a class="toc-item" href="#sec-session"><span class="num">08</span>Session：聊天记录管理员</a>
-  <a class="toc-item" href="#sec-context"><span class="num">09</span>ContextBuilder：提示词组装工厂</a>
-  <a class="toc-item" href="#sec-loop"><span class="num">10</span>AgentLoop：大脑指挥部（最核心！）</a>
-  <a class="toc-item" href="#sec-tools"><span class="num">11</span>Tools：Agent 的双手</a>
-  <a class="toc-item" href="#sec-memory"><span class="num">12</span>Memory：记忆的浓缩与持久化</a>
-  <a class="toc-item" href="#sec-skills"><span class="num">13</span>Skills：可热插拔的技能包</a>
-  <a class="toc-item" href="#sec-fullflow"><span class="num">14</span>完整流程：源码级逐行追踪</a>
-  <a class="toc-item" href="#sec-dataflow"><span class="num">15</span>数据流完整示意图（飞书/Telegram/CLI）</a>
+  <a class="toc-item" href="#sec-structure"><span class="num">01</span>项目结构：先看哪些模块</a>
+  <a class="toc-item" href="#sec-entry"><span class="num">02</span>启动入口：gateway 如何拉起系统</a>
+  <a class="toc-item" href="#sec-config"><span class="num">03</span>配置装配：Config 怎么影响运行</a>
+  <a class="toc-item" href="#sec-feishu-flow"><span class="num">04</span>飞书接入：消息如何进入系统</a>
+  <a class="toc-item" href="#sec-overview"><span class="num">05</span>全局总览：先看完整旅程</a>
+  <a class="toc-item" href="#sec-bus"><span class="num">06</span>MessageBus：消息怎么传</a>
+  <a class="toc-item" href="#sec-session"><span class="num">07</span>Session：历史怎么保留</a>
+  <a class="toc-item" href="#sec-context"><span class="num">08</span>ContextBuilder：LLM 输入怎么拼</a>
+  <a class="toc-item" href="#sec-provider"><span class="num">09</span>Provider：消息怎么发给模型</a>
+  <a class="toc-item" href="#sec-tools"><span class="num">10</span>Tools：模型如何动手</a>
+  <a class="toc-item" href="#sec-loop"><span class="num">11</span>AgentLoop：如何驱动整轮循环</a>
+  <a class="toc-item" href="#sec-memory"><span class="num">12</span>Memory：长对话如何浓缩</a>
+  <a class="toc-item" href="#sec-skills"><span class="num">13</span>Skills：能力如何热插拔</a>
+  <a class="toc-item" href="#sec-fullflow"><span class="num">14</span>完整追踪：源码级回放</a>
+  <a class="toc-item" href="#sec-dataflow"><span class="num">15</span>数据流图：一眼看全链路</a>
 </div>
+
+<section style="padding-top:0;max-width:960px">
+  <div class="tip rv">
+    <strong>新的阅读顺序按一条“消息旅程线”来排：</strong>
+    先看系统怎么启动，再看飞书消息怎么进入、怎么在总线和会话里流转，接着看如何组装给 LLM、如何调用模型和工具，最后再看记忆、技能和完整回放。
+  </div>
+</section>
 
 <!-- ============ 01 STRUCTURE ============ -->
 <section id="sec-structure" data-nav="目录结构">
@@ -203,9 +210,9 @@ section .lead{font-size:1.05rem;color:var(--text2);margin-bottom:2rem;max-width:
 
 <!-- ============ 02 FEISHU FLOW ============ -->
 <section id="sec-feishu-flow" data-nav="飞书流转">
-  <span class="tag" style="background:rgba(245,158,11,.15);color:var(--amber)">第二章</span>
+  <span class="tag" style="background:rgba(245,158,11,.15);color:var(--amber)">第四章</span>
   <h2 class="rv">飞书消息流转 (Gateway 模式)</h2>
-  <p class="lead rv">当使用 <code>nanobot gateway</code> 启动时，系统将作为 Web 服务器接收飞书事件。消息是怎么一步步流转并返回给你的呢？</p>
+  <p class="lead rv">当使用 <code>nanobot gateway</code> 启动时，飞书通道会通过 WebSocket 长连接持续接收事件。消息是怎么一步步流转并返回给你的呢？</p>
 
   <style>
     .gf-list { display: flex; flex-direction: column; margin: 2rem 0; font-family: 'Noto Sans SC', sans-serif; }
@@ -232,6 +239,65 @@ section .lead{font-size:1.05rem;color:var(--text2);margin-bottom:2rem;max-width:
     .gf-text h3 { color: var(--c); font-size: 1.15rem; margin: 0; font-weight: 700; display:flex; align-items:center; gap: 8px;}
     .gf-sub { color: var(--text3); font-size: 0.85rem; font-family: 'JetBrains Mono', monospace; padding: 2px 6px; background: var(--bg3); border-radius: 4px;}
     .gf-text p { color: var(--text2); font-size: 0.9rem; margin: 0; font-family: 'JetBrains Mono', monospace; }
+
+    .msg-grid{
+      display:grid;grid-template-columns:1.15fr .85fr;gap:1rem;margin:1.8rem 0 0;
+    }
+    .msg-panel{
+      background:linear-gradient(180deg,var(--bg2),rgba(255,255,255,.55));
+      border:1px solid var(--bg3);border-radius:14px;padding:1.1rem 1.15rem;
+      box-shadow:0 10px 25px rgba(0,0,0,.05);
+    }
+    .msg-panel h3{font-size:1rem;margin-bottom:.35rem;display:flex;align-items:center;gap:8px}
+    .msg-panel .sublead{font-size:.84rem;color:var(--text3);margin-bottom:1rem}
+    .msg-stack{display:flex;flex-direction:column;gap:1rem}
+    .msg-row{display:flex;gap:.85rem;align-items:flex-start}
+    .msg-avatar{
+      width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+      font-size:.82rem;font-weight:900;color:#fff;flex-shrink:0;background:var(--c);
+      box-shadow:0 8px 18px rgba(0,0,0,.08);
+    }
+    .msg-bubble{
+      flex:1;background:rgba(255,255,255,.62);border:1px solid var(--bg3);border-radius:12px;
+      padding:.9rem .95rem;
+    }
+    .msg-bubble h4{font-size:.92rem;margin:0 0 .3rem 0;color:var(--text)}
+    .msg-bubble p{font-size:.84rem;color:var(--text2);margin:0 0 .65rem 0;line-height:1.7}
+    .payload{
+      background:#111113;border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:.85rem .95rem;
+      overflow-x:auto;
+    }
+    .payload pre{
+      margin:0;font-family:'JetBrains Mono',monospace;font-size:.76rem;line-height:1.72;color:#d5dae1;white-space:pre-wrap;
+    }
+    .payload .hl{color:var(--amber)}
+    .payload .kw{color:var(--pink)}
+    .payload .st{color:var(--emerald)}
+    .payload .id{color:#7dd3fc}
+    .payload .cm{color:#94a3b8}
+    .loop-branch{
+      background:rgba(255,255,255,.62);border:1px solid var(--bg3);border-radius:12px;padding:.9rem .95rem;margin-top:.85rem;
+    }
+    .loop-branch:first-of-type{margin-top:0}
+    .loop-branch h4{font-size:.9rem;margin-bottom:.55rem}
+    .branch-step{
+      display:flex;gap:.65rem;align-items:flex-start;margin-bottom:.7rem;
+    }
+    .branch-step:last-child{margin-bottom:0}
+    .branch-num{
+      width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+      font-size:.74rem;font-weight:900;color:#fff;background:var(--c);flex-shrink:0;margin-top:2px;
+    }
+    .branch-step p{font-size:.82rem;color:var(--text2);margin:0;line-height:1.7}
+    .history-note{
+      margin-top:1rem;padding:1rem;border-radius:12px;background:rgba(217,119,6,.08);
+      border:1px solid rgba(217,119,6,.18);
+    }
+    .history-note h4{font-size:.9rem;margin-bottom:.4rem;color:var(--amber)}
+    .history-note p{font-size:.84rem;color:var(--text2);margin:0}
+    @media(max-width:768px){
+      .msg-grid{grid-template-columns:1fr}
+    }
   </style>
 
   <div class="gf-list rv">
@@ -257,8 +323,8 @@ section .lead{font-size:1.05rem;color:var(--text2);margin-bottom:2rem;max-width:
       <div class="gf-num">3</div>
       <div class="gf-icon">🚪</div>
       <div class="gf-text">
-        <h3>FeishuChannel 接收 <span class="gf-sub">_handle_webhook()</span></h3>
-        <p>校验签名 + 解密数据 + 提取内容 → publish_inbound()</p>
+        <h3>FeishuChannel 接收 <span class="gf-sub">_on_message()</span></h3>
+        <p>解析 <code>message.content</code>，抽出文本/附件，再调用 <code>_handle_message()</code> 封装成统一入站消息</p>
       </div>
     </div>
 
@@ -266,8 +332,8 @@ section .lead{font-size:1.05rem;color:var(--text2);margin-bottom:2rem;max-width:
       <div class="gf-num">4</div>
       <div class="gf-icon">🤖</div>
       <div class="gf-text">
-        <h3>AgentLoop.run <span class="gf-sub">大脑处理核心</span></h3>
-        <p>consume_inbound → _dispatch → _process_message → (反思/工具调用/生成文本) → publish_outbound()</p>
+        <h3>AgentLoop 接手 <span class="gf-sub">_process_message()</span></h3>
+        <p>consume_inbound → 取历史 → <code>build_messages()</code> → <code>_run_agent_loop()</code> → publish_outbound()</p>
       </div>
     </div>
 
@@ -280,11 +346,132 @@ section .lead{font-size:1.05rem;color:var(--text2);margin-bottom:2rem;max-width:
       </div>
     </div>
   </div>
+
+  <div class="tip rv">
+    <strong>下面这一块就是“对话内容展示”本体：</strong>
+    不只是说“消息被发给了 LLM”，而是直接把一条飞书里的“你好”拆开看，看看它在 nanobot 内部到底长什么样、如何拼成 <code>messages</code>、什么时候结束、什么时候继续 loop。
+  </div>
+
+  <div class="msg-grid rv">
+    <div class="msg-panel">
+      <h3>💬 一条“你好”的四次变形</h3>
+      <p class="sublead">左边看消息长相，右边看这一轮什么时候结束、什么时候继续转。</p>
+
+      <div class="msg-stack">
+        <div class="msg-row">
+          <div class="msg-avatar" style="--c:#10b981">飞书</div>
+          <div class="msg-bubble">
+            <h4>① 飞书原始消息</h4>
+            <p><code>FeishuChannel._on_message()</code> 先拿到飞书 SDK 给的原始事件。对于最简单的文本消息，真正的正文还包在 <code>message.content</code> 这个 JSON 字符串里。</p>
+            <div class="payload"><pre>{
+  <span class="kw">"message_type"</span>: <span class="st">"text"</span>,
+  <span class="kw">"chat_type"</span>: <span class="st">"p2p"</span>,
+  <span class="kw">"content"</span>: <span class="st">"{\"text\":\"你好\"}"</span>
+}</pre></div>
+          </div>
+        </div>
+
+        <div class="msg-row">
+          <div class="msg-avatar" style="--c:#3b82f6">Bus</div>
+          <div class="msg-bubble">
+            <h4>② 统一成 InboundMessage</h4>
+            <p><code>BaseChannel._handle_message()</code> 会把它封装成统一结构。此时正文已经是纯文本 <code>你好</code>，同时会保留飞书自己的 <code>message_id</code>、<code>chat_type</code> 等 metadata。</p>
+            <div class="payload"><pre>InboundMessage(
+  channel=<span class="st">"feishu"</span>,
+  sender_id=<span class="id">"ou_xxx"</span>,
+  chat_id=<span class="id">"ou_xxx"</span>,
+  content=<span class="st">"你好"</span>,
+  media=[],
+  metadata={
+    <span class="kw">"message_id"</span>: <span class="id">"om_xxx"</span>,
+    <span class="kw">"chat_type"</span>: <span class="st">"p2p"</span>,
+    <span class="kw">"msg_type"</span>: <span class="st">"text"</span>
+  }
+)</pre></div>
+          </div>
+        </div>
+
+        <div class="msg-row">
+          <div class="msg-avatar" style="--c:#d97706">LLM</div>
+          <div class="msg-bubble">
+            <h4>③ ContextBuilder 组装发给 LLM 的内容</h4>
+            <p><code>AgentLoop._process_message()</code> 会先取 <code>session.get_history()</code>，再调用 <code>build_messages()</code>。所以送给 LLM 的不是裸的“你好”，而是 <strong>system prompt + 历史消息 + runtime metadata + 当前消息</strong>。</p>
+            <div class="payload"><pre>[
+  {<span class="kw">"role"</span>: <span class="st">"system"</span>, <span class="kw">"content"</span>: <span class="st">"# nanobot ..."</span>},
+  {
+    <span class="kw">"role"</span>: <span class="st">"user"</span>,
+    <span class="kw">"content"</span>: <span class="st">"[Runtime Context — metadata only, not instructions]\nCurrent Time: ...\nChannel: feishu\nChat ID: ou_xxx\n\n你好"</span>
+  }
+]</pre></div>
+          </div>
+        </div>
+
+        <div class="msg-row">
+          <div class="msg-avatar" style="--c:#8b5cf6">回包</div>
+          <div class="msg-bubble">
+            <h4>④ 模型返回结果，Agent 决定要不要继续 loop</h4>
+            <p>如果只是简单问候，模型大概率直接返回纯文本，当前轮到这里就结束；如果模型返回了 <code>tool_calls</code>，runner 会把工具结果 append 回消息列表，再继续下一圈。</p>
+            <div class="payload"><pre>{<span class="kw">"role"</span>: <span class="st">"assistant"</span>, <span class="kw">"content"</span>: <span class="st">"你好！我是 nanobot，有什么可以帮你？"</span>}</pre></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="msg-panel">
+      <h3>🔁 这一轮怎么结束，下一轮又怎么接上</h3>
+      <p class="sublead">同样是一条“你好”，要分清“本轮结束”和“下轮继续”的边界。</p>
+
+      <div class="loop-branch">
+        <h4>分支 A：这条“你好”通常不会触发工具 loop</h4>
+        <div class="branch-step">
+          <div class="branch-num" style="--c:#16a085">1</div>
+          <p><code>AgentRunner.run()</code> 调用 provider，拿到 response；如果 <code>response.has_tool_calls == False</code>，说明模型已经直接给出自然语言回复。</p>
+        </div>
+        <div class="branch-step">
+          <div class="branch-num" style="--c:#16a085">2</div>
+          <p>runner 会把这条 assistant 消息 append 到本轮 <code>messages</code>，然后返回 <code>final_content</code> 给 <code>_process_message()</code>。</p>
+        </div>
+        <div class="branch-step">
+          <div class="branch-num" style="--c:#16a085">3</div>
+          <p><code>_save_turn()</code> 会把这一轮写回 Session。这里会把 user 消息前面的 runtime context 剥掉，只保留真正的正文 <code>你好</code>。</p>
+        </div>
+        <div class="branch-step">
+          <div class="branch-num" style="--c:#16a085">4</div>
+          <p>最后打包成 <code>OutboundMessage</code> 回到飞书，所以你在飞书里看到的是回复文本，而不是内部那一长串 prompt。</p>
+        </div>
+      </div>
+
+      <div class="loop-branch">
+        <h4>分支 B：如果模型返回了 <code>tool_calls</code>，才会继续 loop</h4>
+        <div class="branch-step">
+          <div class="branch-num" style="--c:#8b5cf6">1</div>
+          <p>先把 assistant 的工具调用请求写进 <code>messages</code>，形态类似：<code>{"role":"assistant","tool_calls":[...]}</code>。</p>
+        </div>
+        <div class="branch-step">
+          <div class="branch-num" style="--c:#8b5cf6">2</div>
+          <p>执行工具，把结果再 append 成 <code>{"role":"tool","tool_call_id":"...","content":"..."}</code>。</p>
+        </div>
+        <div class="branch-step">
+          <div class="branch-num" style="--c:#8b5cf6">3</div>
+          <p>带着更长的 <code>messages</code> 再次调用 LLM。只要还有 <code>tool_calls</code>，这一轮就继续转；没有了才产出最终回复。</p>
+        </div>
+      </div>
+
+      <div class="history-note">
+        <h4>下一轮 loop 看到的历史，不是原始 payload，而是清洗后的会话记录</h4>
+        <p>所以下一次用户再发消息时，<code>session.get_history()</code> 拿到的是像 <code>user: 你好</code>、<code>assistant: 你好！我是 nanobot...</code> 这样的干净历史，然后再和新的 runtime context、新消息一起重新执行 <code>build_messages()</code>。</p>
+      </div>
+
+      <div class="payload" style="margin-top:1rem;"><pre><span class="cm"># 写回 session 后，更接近下一轮看到的历史</span>
+{<span class="kw">"role"</span>: <span class="st">"user"</span>, <span class="kw">"content"</span>: <span class="st">"你好"</span>}
+{<span class="kw">"role"</span>: <span class="st">"assistant"</span>, <span class="kw">"content"</span>: <span class="st">"你好！我是 nanobot，有什么可以帮你？"</span>}</pre></div>
+    </div>
+  </div>
 </section>
 
 <!-- ============ 03 OVERVIEW ============ -->
 <section id="sec-overview" data-nav="全局鸟瞰">
-  <span class="tag" style="background:rgba(163,230,53,.12);color:var(--lime)">第三章</span>
+  <span class="tag" style="background:rgba(163,230,53,.12);color:var(--lime)">第五章</span>
   <h2 class="rv">全局鸟瞰：一条消息的完整旅程</h2>
   <p class="lead rv">在深入每个类之前，先用一张图看看全貌。当你在飞书输入一句话，数据会经过哪些"车站"？</p>
 
@@ -342,7 +529,7 @@ section .lead{font-size:1.05rem;color:var(--text2);margin-bottom:2rem;max-width:
 
 <!-- ============ 04 ENTRY ============ -->
 <section id="sec-entry" data-nav="入口">
-  <span class="tag" style="background:rgba(96,165,250,.12);color:var(--blue)">第四章</span>
+  <span class="tag" style="background:rgba(96,165,250,.12);color:var(--blue)">第二章</span>
   <h2 class="rv">入口：从 <code>nanobot gateway</code> 到 服务启动</h2>
   <p class="lead rv">你敲下启动后端服务的命令后，发生了什么？</p>
 
@@ -383,7 +570,7 @@ C. Heartbeat/Cron    → 定时心跳与计划任务处理</div>
 
 <!-- ============ 05 CONFIG ============ -->
 <section id="sec-config" data-nav="Config">
-  <span class="tag" style="background:rgba(163,230,53,.12);color:var(--lime)">第五章</span>
+  <span class="tag" style="background:rgba(163,230,53,.12);color:var(--lime)">第三章</span>
   <h2 class="rv">Config：配置文件怎么变成代码对象</h2>
   <p class="lead rv">一个 JSON 文件，是怎么变成程序能理解的"指令"的？</p>
 
@@ -444,7 +631,7 @@ C. Heartbeat/Cron    → 定时心跳与计划任务处理</div>
 
 <!-- ============ 04 PROVIDER ============ -->
 <section id="sec-provider" data-nav="Provider">
-  <span class="tag" style="background:rgba(251,113,133,.12);color:var(--rose)">第四章</span>
+  <span class="tag" style="background:rgba(251,113,133,.12);color:var(--rose)">第九章</span>
   <h2 class="rv">Provider：AI 大脑的"电话线"</h2>
   <p class="lead rv">Agent 自己不会"想"——它需要打电话给外面的 AI 大脑。Provider 就是这根电话线。</p>
 
@@ -545,7 +732,7 @@ C. Heartbeat/Cron    → 定时心跳与计划任务处理</div>
 
 <!-- ============ 05 BUS ============ -->
 <section id="sec-bus" data-nav="MessageBus">
-  <span class="tag" style="background:rgba(167,139,250,.12);color:var(--purple)">第五章</span>
+  <span class="tag" style="background:rgba(167,139,250,.12);color:var(--purple)">第六章</span>
   <h2 class="rv">MessageBus：消息传送带</h2>
   <p class="lead rv">最简单但最重要的组件——它让所有部件不用直接认识对方，通过传送带间接合作。</p>
 
@@ -583,7 +770,7 @@ C. Heartbeat/Cron    → 定时心跳与计划任务处理</div>
 
 <!-- ============ 06 SESSION ============ -->
 <section id="sec-session" data-nav="Session">
-  <span class="tag" style="background:rgba(34,211,238,.12);color:var(--cyan)">第六章</span>
+  <span class="tag" style="background:rgba(34,211,238,.12);color:var(--cyan)">第七章</span>
   <h2 class="rv">Session：聊天记录管理员</h2>
   <p class="lead rv">Agent 怎么知道"我们刚才聊到哪了"？靠 Session。</p>
 
@@ -632,7 +819,7 @@ C. Heartbeat/Cron    → 定时心跳与计划任务处理</div>
 
 <!-- ============ 07 CONTEXT ============ -->
 <section id="sec-context" data-nav="Context">
-  <span class="tag" style="background:rgba(245,158,11,.12);color:var(--amber)">第七章</span>
+  <span class="tag" style="background:rgba(245,158,11,.12);color:var(--amber)">第八章</span>
   <h2 class="rv">ContextBuilder：提示词组装工厂</h2>
   <p class="lead rv">发给 AI 的不是你那一句话——而是一个精心拼装的"大文档"。ContextBuilder 就是组装这个文档的工厂。</p>
 
@@ -691,7 +878,7 @@ C. Heartbeat/Cron    → 定时心跳与计划任务处理</div>
 
 <!-- ============ 08 AGENT LOOP ============ -->
 <section id="sec-loop" data-nav="AgentLoop">
-  <span class="tag" style="background:rgba(245,158,11,.15);color:var(--amber)">第八章 · 核心</span>
+  <span class="tag" style="background:rgba(245,158,11,.15);color:var(--amber)">第十一章 · 核心</span>
   <h2 class="rv">AgentLoop：大脑指挥部</h2>
   <p class="lead rv">这是整个项目最核心的类。搞懂它，你就搞懂了 nanobot 的 80%。</p>
 
@@ -806,7 +993,7 @@ return (final_content, tools_used, messages)</div>
 
 <!-- ============ 09 TOOLS ============ -->
 <section id="sec-tools" data-nav="Tools">
-  <span class="tag" style="background:rgba(34,211,238,.12);color:var(--cyan)">第九章</span>
+  <span class="tag" style="background:rgba(34,211,238,.12);color:var(--cyan)">第十章</span>
   <h2 class="rv">Tools：Agent 的双手</h2>
   <p class="lead rv">AI 大脑说"帮我搜一下"，具体怎么搜？靠工具。每个工具就是一个 Python 类。</p>
 
@@ -901,7 +1088,7 @@ return (final_content, tools_used, messages)</div>
 
 <!-- ============ 10 MEMORY ============ -->
 <section id="sec-memory" data-nav="Memory">
-  <span class="tag" style="background:rgba(163,230,53,.12);color:var(--lime)">第十章</span>
+  <span class="tag" style="background:rgba(163,230,53,.12);color:var(--lime)">第十二章</span>
   <h2 class="rv">Memory：记忆的浓缩与持久化</h2>
   <p class="lead rv">聊了几百轮后，会话记录会越来越长。Memory 系统负责把冗长的对话"蒸馏"成精华。</p>
 
@@ -940,7 +1127,7 @@ return (final_content, tools_used, messages)</div>
 
 <!-- ============ 11 SKILLS ============ -->
 <section id="sec-skills" data-nav="Skills">
-  <span class="tag" style="background:rgba(251,113,133,.12);color:var(--rose)">第十一章</span>
+  <span class="tag" style="background:rgba(251,113,133,.12);color:var(--rose)">第十三章</span>
   <h2 class="rv">Skills：可热插拔的技能包</h2>
   <p class="lead rv">技能不是硬编码在程序里的——它们是独立的 Markdown 文件，随时可以增删改。</p>
 
@@ -982,7 +1169,7 @@ return (final_content, tools_used, messages)</div>
 
 <!-- ============ 12 FULL FLOW ============ -->
 <section id="sec-fullflow" data-nav="完整追踪">
-  <span class="tag" style="background:rgba(245,158,11,.15);color:var(--amber)">第十二章 · 终章</span>
+  <span class="tag" style="background:rgba(245,158,11,.15);color:var(--amber)">第十四章 · 终章</span>
   <h2 class="rv">完整流程：以 Gateway 推送为例逐行追踪</h2>
   <p class="lead rv">现在把所有零件串起来。当你在飞书发出"帮我查一下杭州天气"后，后台代码到底是怎么跑的？每一步都为你标注了对应的文件和方法。</p>
 
@@ -991,9 +1178,9 @@ return (final_content, tools_used, messages)</div>
     <div class="tl-step">
       <div class="tl-dot" style="background:var(--blue);color:var(--bg)">①</div>
       <h4 style="color:var(--blue)">飞书发送 → 网关接收</h4>
-      <p><code>channels/feishu.py</code> → <code>_handle_webhook()</code></p>
+      <p><code>channels/feishu.py</code> → <code>_on_message()</code></p>
       <div class="detail">常驻的 Socket 协程流中收到飞书长连接推来的 Event
-→ 进行验密解包和 Payload 提取
+→ 解析 <code>message.content</code>、提取正文与附件
 → 包装成 InboundMessage(channel="feishu", sender_id="U123",
      chat_id="C456", content="帮我查一下杭州天气")
 → bus.publish_inbound(msg)  # 把消息丢进总站传送带交给主循环</div>
@@ -1110,7 +1297,7 @@ return (final_content, tools_used, messages)</div>
 
 <!-- ============ 13 DATA FLOW MAP ============ -->
 <section id="sec-dataflow" data-nav="数据流图">
-  <span class="tag" style="background:rgba(34,211,238,.12);color:var(--cyan)">第十三章</span>
+  <span class="tag" style="background:rgba(34,211,238,.12);color:var(--cyan)">第十五章</span>
   <h2 class="rv">数据流完整示意图（你截图这个版本）</h2>
   <p class="lead rv">这一段是按你给的结构整理成“可直接读源码对照”的流程图版本，强调每一步对应的关键函数。</p>
 
@@ -1168,6 +1355,30 @@ return (final_content, tools_used, messages)</div>
 </footer>
 
 <script>
+const orderedSectionIds = [
+  'sec-structure',
+  'sec-entry',
+  'sec-config',
+  'sec-feishu-flow',
+  'sec-overview',
+  'sec-bus',
+  'sec-session',
+  'sec-context',
+  'sec-provider',
+  'sec-tools',
+  'sec-loop',
+  'sec-memory',
+  'sec-skills',
+  'sec-fullflow',
+  'sec-dataflow',
+];
+
+const footer = document.querySelector('.footer');
+orderedSectionIds.forEach(id => {
+  const section = document.getElementById(id);
+  if (section && footer) document.body.insertBefore(section, footer);
+});
+
 // reveal on scroll
 const obs = new IntersectionObserver(es => es.forEach(e => { if(e.isIntersecting) e.target.classList.add('vis') }), {threshold:.08});
 document.querySelectorAll('.rv').forEach(el => obs.observe(el));
